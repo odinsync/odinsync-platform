@@ -1,0 +1,15 @@
+spring:
+
+  application:
+    name: odinsync-platform
+
+logging:
+  level:
+    root: INFO
+    com.odinsync: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
