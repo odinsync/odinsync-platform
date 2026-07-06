@@ -9,6 +9,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -16,23 +18,23 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 class SecurityConfig {
+
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http
 				.csrf(AbstractHttpConfigurer::disable)
-				.cors(
-						cors ->
-								cors.configurationSource(corsConfigurationSource()))
-				.sessionManagement(
-						session ->
-								session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.authorizeHttpRequests(
-						authorize ->
-								authorize
+				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/actuator/health", "/actuator/info").permitAll()
-						.anyRequest().authenticated()
-				)
+						.requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
+						.anyRequest().authenticated())
 				.build();
+	}
+
+	@Bean
+	PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
 	}
 
 	@Bean
@@ -63,42 +65,3 @@ class SecurityConfig {
 		return source;
 	}
 }
-
-
-//Incoming HTTP Request
-//
-//        │
-//
-//				▼
-//
-//Spring Security Filter Chain
-//
-//        │
-//
-//				▼
-//
-//CORS Check
-//
-//        │
-//
-//				▼
-//
-//CSRF Check (Disabled)
-//
-//        │
-//
-//				▼
-//
-//Session Management
-//
-//        │
-//
-//				▼
-//
-//Authorization Rules
-//
-//        │
-//
-//				▼
-//
-//Controller
