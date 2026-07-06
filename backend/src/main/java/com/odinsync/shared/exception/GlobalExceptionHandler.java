@@ -1,6 +1,7 @@
 package com.odinsync.shared.exception;
 
 import com.odinsync.identity.domain.exception.EmailAlreadyExistsException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,6 +19,15 @@ public class GlobalExceptionHandler {
                 .body(ApiErrorResponse.of(
                         "EMAIL_ALREADY_EXISTS",
                         exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolation() {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiErrorResponse.of(
+                        "DATA_INTEGRITY_CONFLICT",
+                        "Request conflicts with existing data"
                 ));
     }
 

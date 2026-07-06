@@ -12,9 +12,10 @@ import org.junit.jupiter.api.Test;
 import com.odinsync.identity.application.command.RegisterOrganizationCommand;
 import com.odinsync.identity.application.port.out.OrganizationRepositoryPort;
 import com.odinsync.identity.application.port.out.PasswordEncoderPort;
+import com.odinsync.identity.application.port.out.RoleRepositoryPort;
 import com.odinsync.identity.application.port.out.TenantRepositoryPort;
 import com.odinsync.identity.application.port.out.UserRepositoryPort;
-import com.odinsync.identity.application.port.out.UserRoleRepositoryPort;
+import com.odinsync.identity.application.port.out.UserRoleAssignmentPort;
 import com.odinsync.identity.domain.exception.EmailAlreadyExistsException;
 import com.odinsync.identity.domain.model.Organization;
 import com.odinsync.identity.domain.model.Role;
@@ -32,13 +33,15 @@ class RegisterOrganizationUseCaseTest {
 		InMemoryTenantRepository tenants = new InMemoryTenantRepository();
 		InMemoryOrganizationRepository organizations = new InMemoryOrganizationRepository();
 		InMemoryUserRepository users = new InMemoryUserRepository();
-		InMemoryUserRoleRepository userRoles = new InMemoryUserRoleRepository();
+		InMemoryRoleRepository roles = new InMemoryRoleRepository();
+		InMemoryUserRoleAssignment userRoleAssignments = new InMemoryUserRoleAssignment();
 
 		RegisterOrganizationUseCase service = new RegisterOrganizationUseCase(
 				tenants,
 				organizations,
 				users,
-				userRoles,
+				roles,
+				userRoleAssignments,
 				rawPassword -> "hashed-" + rawPassword);
 
 		RegisterOrganizationResult result = service.register(new RegisterOrganizationCommand(
@@ -67,11 +70,11 @@ class RegisterOrganizationUseCaseTest {
 		assertThat(owner.passwordHash()).isEqualTo("hashed-strong-password");
 		assertThat(owner.status()).isEqualTo(UserStatus.ACTIVE);
 
-		Role ownerRole = userRoles.savedRole;
+		Role ownerRole = roles.savedRole;
 		assertThat(ownerRole.tenantId()).isEqualTo(tenant.id());
 		assertThat(ownerRole.name()).isEqualTo(RoleName.OWNER);
-		assertThat(userRoles.assignedUserId).isEqualTo(owner.id());
-		assertThat(userRoles.assignedRoleId).isEqualTo(ownerRole.id());
+		assertThat(userRoleAssignments.assignedUserId).isEqualTo(owner.id());
+		assertThat(userRoleAssignments.assignedRoleId).isEqualTo(ownerRole.id());
 	}
 
 	@Test
@@ -83,7 +86,8 @@ class RegisterOrganizationUseCaseTest {
 				new InMemoryTenantRepository(),
 				new InMemoryOrganizationRepository(),
 				users,
-				new InMemoryUserRoleRepository(),
+				new InMemoryRoleRepository(),
+				new InMemoryUserRoleAssignment(),
 				new NoOpPasswordEncoderPort());
 
 		RegisterOrganizationCommand command = new RegisterOrganizationCommand(
@@ -135,16 +139,19 @@ class RegisterOrganizationUseCaseTest {
 		}
 	}
 
-	private static final class InMemoryUserRoleRepository implements UserRoleRepositoryPort {
+	private static final class InMemoryRoleRepository implements RoleRepositoryPort {
 		private Role savedRole;
-		private UUID assignedUserId;
-		private UUID assignedRoleId;
 
 		@Override
 		public Role save(Role role) {
 			savedRole = role;
 			return role;
 		}
+	}
+
+	private static final class InMemoryUserRoleAssignment implements UserRoleAssignmentPort {
+		private UUID assignedUserId;
+		private UUID assignedRoleId;
 
 		@Override
 		public void assignRole(UUID userId, UUID roleId) {

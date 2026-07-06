@@ -4,7 +4,6 @@ import com.odinsync.identity.infrastructure.persistence.entity.OrganizationJpaEn
 import com.odinsync.identity.infrastructure.persistence.repository.OrganizationJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 
 import com.odinsync.identity.application.port.out.OrganizationRepositoryPort;
 import com.odinsync.identity.domain.model.Organization;

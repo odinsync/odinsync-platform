@@ -16,5 +16,3 @@ public record Role(
 		);
 	}
 }
-
-//	private static final String OWNER_ROLE_DESCRIPTION = "Tenant owner with full access.";

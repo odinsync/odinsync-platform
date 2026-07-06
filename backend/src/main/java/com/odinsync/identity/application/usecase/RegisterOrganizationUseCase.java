@@ -13,7 +13,7 @@ import com.odinsync.identity.application.port.out.PasswordEncoderPort;
 import com.odinsync.identity.application.port.out.RoleRepositoryPort;
 import com.odinsync.identity.application.port.out.TenantRepositoryPort;
 import com.odinsync.identity.application.port.out.UserRepositoryPort;
-import com.odinsync.identity.application.port.out.UserRoleRepositoryPort;
+import com.odinsync.identity.application.port.out.UserRoleAssignmentPort;
 import com.odinsync.identity.domain.model.Organization;
 import com.odinsync.identity.domain.model.Role;
 import com.odinsync.identity.domain.model.Tenant;
@@ -27,19 +27,22 @@ class RegisterOrganizationUseCase implements RegisterOrganizationPort {
 	private final TenantRepositoryPort tenantRepository;
 	private final OrganizationRepositoryPort organizationRepository;
 	private final UserRepositoryPort userRepository;
-	private final UserRoleRepositoryPort roleRepository;
+	private final RoleRepositoryPort roleRepository;
+	private final UserRoleAssignmentPort userRoleAssignment;
 	private final PasswordEncoderPort passwordEncoder;
 
 	RegisterOrganizationUseCase(
 			TenantRepositoryPort tenantRepository,
 			OrganizationRepositoryPort organizationRepository,
 			UserRepositoryPort userRepository,
-			UserRoleRepositoryPort roleRepository,
+			RoleRepositoryPort roleRepository,
+			UserRoleAssignmentPort userRoleAssignment,
 			PasswordEncoderPort passwordEncoder) {
 		this.tenantRepository = tenantRepository;
 		this.organizationRepository = organizationRepository;
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
+		this.userRoleAssignment = userRoleAssignment;
 		this.passwordEncoder = passwordEncoder;
 	}
 
@@ -74,7 +77,7 @@ class RegisterOrganizationUseCase implements RegisterOrganizationPort {
 		);
 
 		Role ownerRole = roleRepository.save(Role.ownerRole(tenant.id()));
-		roleRepository.assignRole(
+		userRoleAssignment.assignRole(
 				ownerUser.id(), ownerRole.id()
 		);
 

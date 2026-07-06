@@ -1,14 +1,11 @@
 package com.odinsync;
 
-import java.util.Optional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 
 import com.odinsync.identity.application.port.out.OrganizationRepositoryPort;
@@ -16,8 +13,7 @@ import com.odinsync.identity.application.port.out.PasswordEncoderPort;
 import com.odinsync.identity.application.port.out.RoleRepositoryPort;
 import com.odinsync.identity.application.port.out.TenantRepositoryPort;
 import com.odinsync.identity.application.port.out.UserRepositoryPort;
-import com.odinsync.identity.application.port.out.UserRoleRepositoryPort;
-import com.odinsync.identity.domain.model.Role;
+import com.odinsync.identity.application.port.out.UserRoleAssignmentPort;
 
 @SpringBootTest(
 		classes = OdinsyncPlatformApplicationTests.TestApplication.class,
@@ -35,11 +31,10 @@ class OdinsyncPlatformApplicationTests {
 
 	@SpringBootConfiguration
 	@EnableAutoConfiguration
-	@ComponentScan(
-			basePackages = "com.odinsync",
-			excludeFilters = @ComponentScan.Filter(
-					type = FilterType.REGEX,
-					pattern = "com\\.odinsync\\.identity\\.infrastructure\\.persistence\\.repository\\..*"))
+	@ComponentScan(basePackages = {
+			"com.odinsync.shared.security",
+			"com.odinsync.shared.exception"
+	})
 	static class TestApplication {
 
 		@Bean
@@ -74,34 +69,13 @@ class OdinsyncPlatformApplicationTests {
 		@Bean
 		@Primary
 		RoleRepositoryPort roleRepositoryPort() {
-			return new RoleRepositoryPort() {
-				@Override
-				public Optional<com.odinsync.identity.domain.model.Role> findByTenantIdAndName(
-						java.util.UUID tenantId,
-						String name) {
-					return Optional.empty();
-				}
-
-				@Override
-				public com.odinsync.identity.domain.model.Role save(
-						com.odinsync.identity.domain.model.Role role) {
-					return role;
-				}
-			};
+			return role -> role;
 		}
 
 		@Bean
 		@Primary
-		UserRoleRepositoryPort userRoleRepositoryPort() {
-			return new UserRoleRepositoryPort() {
-				@Override
-				public Role save(Role role) {
-					return role;
-				}
-
-				@Override
-				public void assignRole(java.util.UUID userId, java.util.UUID roleId) {
-				}
+		UserRoleAssignmentPort userRoleAssignmentPort() {
+			return (userId, roleId) -> {
 			};
 		}
 
