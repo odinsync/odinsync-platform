@@ -1,5 +1,6 @@
 # Login Authentication Flow
 
+
 ## 1. Purpose
 
 This document explains how OdinSync evaluates a user's email and password during login and converts valid credentials into an `AuthenticatedUser`.
@@ -26,6 +27,46 @@ LoginUseCase
 → PasswordEncoder
 → Authenticated Spring Security principal
 → AuthenticatedUser
+```
+
+---
+
+## Overview
+
+Although the login flow appears to execute a single method:
+
+```java
+AuthenticatedUser user =
+        credentialsAuthenticator.authenticate(
+                command.normalizedEmail(),
+                command.password()
+        );
+```
+
+this activates Spring Security's complete username/password authentication pipeline.
+
+```text
+LoginUseCase
+        ↓
+CredentialsAuthenticatorPort
+        ↓
+SpringCredentialsAuthenticatorAdapter
+        ↓
+AuthenticationManager
+        ↓
+DaoAuthenticationProvider
+        ↓
+OdinSyncUserDetailsService
+        ↓
+PostgreSQL Database
+        ↓
+PasswordEncoder (BCrypt)
+        ↓
+Authenticated Authentication
+        ↓
+OdinSyncUserDetails
+        ↓
+AuthenticatedUser
 ```
 
 ---
@@ -233,7 +274,13 @@ public class SpringCredentialsAuthenticatorAdapter
 }
 ```
 
-This adapter converts the application request into Spring Security's authentication format.
+Responsibilities:
+
+1. Create an unauthenticated authentication request.
+2. Delegate validation to `AuthenticationManager`.
+3. Convert `OdinSyncUserDetails` into `AuthenticatedUser`.
+
+The adapter **never validates passwords itself**.
 
 ---
 
@@ -248,17 +295,21 @@ UsernamePasswordAuthenticationToken.unauthenticated(
 )
 ```
 
-Despite the name, this is not the JWT access token.
+Creates a temporary authentication request.
 
-It is a temporary Spring Security object containing the credentials that must be verified.
-
-Conceptually:
+Initial state:
 
 ```text
-principal   = owner@odinsync.com
-credentials = Password@123
+principal     = owner@odinsync.com
+credentials   = Password@123
 authenticated = false
+authorities   = []
 ```
+
+This is **not** a JWT.
+
+Despite the name, this is not the JWT access token.
+
 
 At this point, Spring has not accepted the user.
 
@@ -278,11 +329,21 @@ authenticationManager.authenticate(authenticationRequest);
 
 Its responsibility is to find an `AuthenticationProvider` that understands the supplied authentication type.
 
-For username/password login, it selects:
+Conceptually:
+
+```java
+for (AuthenticationProvider provider : providers) {
+    if (provider.supports(authentication.getClass())) {
+        return provider.authenticate(authentication);
+    }
+}
+```
+For `UsernamePasswordAuthenticationToken`, Spring selects:
 
 ```text
 DaoAuthenticationProvider
 ```
+
 
 The manager does not directly:
 
@@ -321,6 +382,20 @@ DaoAuthenticationProvider authenticationProvider(
 
     return provider;
 }
+```
+
+Responsibilities:
+
+```text
+Extract username
+      ↓
+Load user
+      ↓
+Read BCrypt hash
+      ↓
+Compare passwords
+      ↓
+Create authenticated Authentication
 ```
 
 Its workflow is:
@@ -375,19 +450,29 @@ public UserDetails loadUserByUsername(String email) {
 }
 ```
 
-## Data loaded
-
 The service loads:
 
-- User ID
-- Tenant ID
-- Email
-- BCrypt password hash
-- User status
-- Tenant status
-- Assigned roles
+- User
+- Tenant
+- Roles
 
-It does not load or recover the original password.
+and returns:
+
+```java
+OdinSyncUserDetails
+```
+
+containing:
+
+- userId
+- tenantId
+- email
+- passwordHash
+- roles
+- status
+
+
+It does not load the original password.
 
 ---
 
@@ -556,10 +641,36 @@ It then extracts the principal:
 OdinSyncUserDetails principal =
         (OdinSyncUserDetails) authentication.getPrincipal();
 ```
+```java
+if (authentication.getPrincipal()
+        instanceof OdinSyncUserDetails userDetails) {
+    return userDetails.toAuthenticatedUser();
+}
+```
+
+Spring returns `Object` because different authentication mechanisms return different principal types.
+
+OdinSync converts the Spring principal into a framework-independent application model.
 
 ---
 
 # 16. Conversion to AuthenticatedUser
+
+`OdinSyncUserDetails`
+
+- Infrastructure
+- Implements UserDetails
+- Contains password hash
+- Used by Spring Security
+
+↓
+
+`AuthenticatedUser`
+
+- Application layer
+- Framework independent
+- No password hash
+- Used by LoginUseCase and JWT generation
 
 The Spring-specific principal is converted into an application-layer model:
 
@@ -672,7 +783,37 @@ The JWT is not part of the username/password evaluation itself.
 
 ---
 
-# 19. Complete Sequence Diagram
+# 19. Complete Authentication Sequence
+
+```text
+Client
+    ↓
+LoginController
+    ↓
+LoginUseCase
+    ↓
+SpringCredentialsAuthenticatorAdapter
+    ↓
+AuthenticationManager
+    ↓
+DaoAuthenticationProvider
+    ↓
+OdinSyncUserDetailsService
+    ↓
+Database
+    ↓
+PasswordEncoder.matches()
+    ↓
+Authenticated Authentication
+    ↓
+OdinSyncUserDetails
+    ↓
+AuthenticatedUser
+    ↓
+JWT Generation
+```
+
+# 20. Complete Sequence Diagram
 
 ```mermaid
 sequenceDiagram
@@ -741,7 +882,7 @@ sequenceDiagram
 
 ---
 
-# 20. Failure Workflows
+# 21. Failure Workflows
 
 ## Unknown email
 
@@ -799,7 +940,24 @@ Correct email
 
 ---
 
-# 21. Component Responsibility Matrix
+# Step 22 – Exception Translation
+
+Spring exceptions such as:
+
+- BadCredentialsException
+- UsernameNotFoundException
+- DisabledException
+- LockedException
+
+are translated into:
+
+```java
+InvalidCredentialsException
+```
+
+This prevents Spring Security classes from leaking into the application layer.
+
+# 23. Component Responsibility Matrix
 
 | Component | Responsibility |
 |---|---|
@@ -819,7 +977,7 @@ Correct email
 
 ---
 
-# 22. Mental Model
+# 24. Mental Model
 
 Remember this simplified flow:
 
@@ -860,7 +1018,7 @@ AuthenticatedUser
 
 ---
 
-# 23. Debugging Checklist
+# 25. Debugging Checklist
 
 When authentication does not work, check in this order:
 
@@ -879,7 +1037,7 @@ When authentication does not work, check in this order:
 
 ---
 
-# 24. Summary
+# 26. Summary
 
 This line:
 
@@ -903,3 +1061,20 @@ Normalize login identity
 ```
 
 The use case can then validate OdinSync-specific rules and issue an access token without depending directly on Spring Security internals.
+
+
+## Next Section
+
+The next recommended chapter is:
+
+**Protected API Authentication Flow**
+
+It explains:
+
+- BearerTokenAuthenticationFilter
+- JwtDecoder
+- JwtAuthenticationProvider
+- JwtAuthenticationConverter
+- SecurityContextHolder
+- AuthorizationManager
+- Controller execution
