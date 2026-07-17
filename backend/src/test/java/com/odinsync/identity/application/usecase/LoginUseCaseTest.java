@@ -2,105 +2,124 @@ package com.odinsync.identity.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.odinsync.identity.application.command.LoginCommand;
 import com.odinsync.identity.application.port.out.AccessTokenGeneratorPort;
+import com.odinsync.identity.application.port.out.CredentialsAuthenticatorPort;
 import com.odinsync.identity.domain.exception.InactiveTenantException;
 import com.odinsync.identity.domain.exception.InactiveUserException;
 import com.odinsync.identity.domain.exception.InvalidCredentialsException;
 import com.odinsync.identity.domain.model.TenantStatus;
 import com.odinsync.identity.domain.model.UserStatus;
 
+@ExtendWith(MockitoExtension.class)
 class LoginUseCaseTest {
 
+	@Mock
+	private CredentialsAuthenticatorPort credentialsAuthenticator;
+
+	@Mock
+	private AccessTokenGeneratorPort accessTokenGenerator;
+
+	@InjectMocks
+	private LoginUseCase loginUseCase;
+
 	@Test
-	void logsInActiveUserAndReturnsAccessToken() {
+	void authenticatesWithNormalizedEmailAndReturnsAccessToken() {
 		AuthenticatedUser authenticatedUser = activeUser(List.of("OWNER"));
-		CapturingTokenGenerator tokenGenerator = new CapturingTokenGenerator();
-		LoginUseCase useCase = new LoginUseCase(
-				(email, password) -> authenticatedUser,
-				tokenGenerator);
+		GeneratedAccessToken generatedToken = new GeneratedAccessToken("signed-jwt", 900);
+		when(credentialsAuthenticator.authenticate("owner@example.com", "Password@123"))
+				.thenReturn(authenticatedUser);
+		when(accessTokenGenerator.generate(authenticatedUser))
+				.thenReturn(generatedToken);
 
-		LoginResult result = useCase.login(new LoginCommand(
+		LoginResult result = loginUseCase.login(new LoginCommand(
 				" Owner@Example.com ",
-				"correct-password"));
+				"Password@123"));
 
-		assertThat(result.accessToken()).isEqualTo("access-token");
+		assertThat(result.accessToken()).isEqualTo("signed-jwt");
 		assertThat(result.tokenType()).isEqualTo("Bearer");
 		assertThat(result.expiresIn()).isEqualTo(900);
 		assertThat(result.tenantId()).isEqualTo(authenticatedUser.tenantId());
 		assertThat(result.userId()).isEqualTo(authenticatedUser.userId());
 		assertThat(result.roles()).containsExactly("OWNER");
+		verify(credentialsAuthenticator).authenticate("owner@example.com", "Password@123");
+		verify(accessTokenGenerator).generate(authenticatedUser);
 	}
 
 	@Test
-	void rejectsInvalidCredentials() {
-		LoginUseCase useCase = new LoginUseCase(
-				(email, password) -> {
-					throw new InvalidCredentialsException();
-				},
-				user -> new GeneratedAccessToken("unused", 900));
+	void passesAuthenticatedUserDataToTokenGenerator() {
+		AuthenticatedUser authenticatedUser = activeUser(List.of("OWNER", "ADMIN"));
+		when(credentialsAuthenticator.authenticate("owner@example.com", "correct-password"))
+				.thenReturn(authenticatedUser);
+		when(accessTokenGenerator.generate(authenticatedUser))
+				.thenReturn(new GeneratedAccessToken("access-token", 900));
 
-		assertThatThrownBy(() -> useCase.login(new LoginCommand(
+		loginUseCase.login(new LoginCommand("owner@example.com", "correct-password"));
+
+		verify(accessTokenGenerator).generate(authenticatedUser);
+	}
+
+	@Test
+	void propagatesInvalidCredentialsAndDoesNotGenerateToken() {
+		when(credentialsAuthenticator.authenticate("owner@example.com", "wrong-password"))
+				.thenThrow(new InvalidCredentialsException());
+
+		assertThatThrownBy(() -> loginUseCase.login(new LoginCommand(
 				"owner@example.com",
 				"wrong-password")))
 				.isInstanceOf(InvalidCredentialsException.class);
+		verifyNoInteractions(accessTokenGenerator);
 	}
 
 	@Test
-	void rejectsInactiveUser() {
-		LoginUseCase useCase = new LoginUseCase(
-				(email, password) -> new AuthenticatedUser(
-						UUID.randomUUID(),
-						UUID.randomUUID(),
-						email,
-						List.of("OWNER"),
-						UserStatus.DISABLED,
-						TenantStatus.ACTIVE),
-				user -> new GeneratedAccessToken("unused", 900));
+	void rejectsInactiveUserAndDoesNotGenerateToken() {
+		AuthenticatedUser inactiveUser = new AuthenticatedUser(
+				UUID.randomUUID(),
+				UUID.randomUUID(),
+				"owner@example.com",
+				List.of("OWNER"),
+				UserStatus.DISABLED,
+				TenantStatus.ACTIVE);
+		when(credentialsAuthenticator.authenticate("owner@example.com", "correct-password"))
+				.thenReturn(inactiveUser);
 
-		assertThatThrownBy(() -> useCase.login(new LoginCommand(
+		assertThatThrownBy(() -> loginUseCase.login(new LoginCommand(
 				"owner@example.com",
 				"correct-password")))
 				.isInstanceOf(InactiveUserException.class);
+		verifyNoInteractions(accessTokenGenerator);
 	}
 
 	@Test
-	void rejectsInactiveTenant() {
-		LoginUseCase useCase = new LoginUseCase(
-				(email, password) -> new AuthenticatedUser(
-						UUID.randomUUID(),
-						UUID.randomUUID(),
-						email,
-						List.of("OWNER"),
-						UserStatus.ACTIVE,
-						TenantStatus.SUSPENDED),
-				user -> new GeneratedAccessToken("unused", 900));
+	void rejectsInactiveTenantAndDoesNotGenerateToken() {
+		AuthenticatedUser inactiveTenantUser = new AuthenticatedUser(
+				UUID.randomUUID(),
+				UUID.randomUUID(),
+				"owner@example.com",
+				List.of("OWNER"),
+				UserStatus.ACTIVE,
+				TenantStatus.SUSPENDED);
+		when(credentialsAuthenticator.authenticate("owner@example.com", "correct-password"))
+				.thenReturn(inactiveTenantUser);
 
-		assertThatThrownBy(() -> useCase.login(new LoginCommand(
+		assertThatThrownBy(() -> loginUseCase.login(new LoginCommand(
 				"owner@example.com",
 				"correct-password")))
 				.isInstanceOf(InactiveTenantException.class);
-	}
-
-	@Test
-	void sendsAuthenticatedUserToTokenGenerator() {
-		AuthenticatedUser authenticatedUser = activeUser(List.of("OWNER", "ADMIN"));
-		CapturingTokenGenerator tokenGenerator = new CapturingTokenGenerator();
-		LoginUseCase useCase = new LoginUseCase(
-				(email, password) -> authenticatedUser,
-				tokenGenerator);
-
-		useCase.login(new LoginCommand("owner@example.com", "correct-password"));
-
-		assertThat(tokenGenerator.capturedUser).isEqualTo(authenticatedUser);
-		assertThat(tokenGenerator.capturedUser.tenantId()).isEqualTo(authenticatedUser.tenantId());
-		assertThat(tokenGenerator.capturedUser.roles()).containsExactly("OWNER", "ADMIN");
+		verifyNoInteractions(accessTokenGenerator);
 	}
 
 	private static AuthenticatedUser activeUser(List<String> roles) {
@@ -111,15 +130,5 @@ class LoginUseCaseTest {
 				roles,
 				UserStatus.ACTIVE,
 				TenantStatus.ACTIVE);
-	}
-
-	private static final class CapturingTokenGenerator implements AccessTokenGeneratorPort {
-		private AuthenticatedUser capturedUser;
-
-		@Override
-		public GeneratedAccessToken generate(AuthenticatedUser user) {
-			capturedUser = user;
-			return new GeneratedAccessToken("access-token", 900);
-		}
 	}
 }
