@@ -12,6 +12,12 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+odinsync:
+  security:
+    jwt:
+      private-key-location: ${ODINSYNC_JWT_PRIVATE_KEY_LOCATION}
+      public-key-location: ${ODINSYNC_JWT_PUBLIC_KEY_LOCATION}
+
 logging:
   level:
     root: INFO

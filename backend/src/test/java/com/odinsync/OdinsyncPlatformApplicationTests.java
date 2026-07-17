@@ -7,6 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Primary;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 import com.odinsync.identity.application.port.out.OrganizationRepositoryPort;
 import com.odinsync.identity.application.port.out.PasswordEncoderPort;
@@ -18,6 +20,7 @@ import com.odinsync.identity.application.port.out.UserRoleAssignmentPort;
 @SpringBootTest(
 		classes = OdinsyncPlatformApplicationTests.TestApplication.class,
 		properties = {
+		"odinsync.security.jwt.generate-development-keys=true",
 		"spring.autoconfigure.exclude="
 				+ "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
 				+ "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
@@ -83,6 +86,14 @@ class OdinsyncPlatformApplicationTests {
 		@Primary
 		PasswordEncoderPort passwordHasher() {
 			return rawPassword -> rawPassword;
+		}
+
+		@Bean
+		UserDetailsService userDetailsService() {
+			return username -> User.withUsername(username)
+					.password("{noop}password")
+					.roles("TEST")
+					.build();
 		}
 	}
 }

@@ -1,6 +1,9 @@
 package com.odinsync.shared.exception;
 
 import com.odinsync.identity.domain.exception.EmailAlreadyExistsException;
+import com.odinsync.identity.domain.exception.InactiveTenantException;
+import com.odinsync.identity.domain.exception.InactiveUserException;
+import com.odinsync.identity.domain.exception.InvalidCredentialsException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +31,37 @@ public class GlobalExceptionHandler {
                 .body(ApiErrorResponse.of(
                         "DATA_INTEGRITY_CONFLICT",
                         "Request conflicts with existing data"
+                ));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidCredentials() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiErrorResponse.of(
+                        "INVALID_CREDENTIALS",
+                        "Invalid email or password"
+                ));
+    }
+
+    @ExceptionHandler(InactiveUserException.class)
+    public ResponseEntity<ApiErrorResponse> handleInactiveUser(
+            InactiveUserException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiErrorResponse.of(
+                        "INACTIVE_USER",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(InactiveTenantException.class)
+    public ResponseEntity<ApiErrorResponse> handleInactiveTenant(
+            InactiveTenantException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiErrorResponse.of(
+                        "INACTIVE_TENANT",
+                        exception.getMessage()
                 ));
     }
 
