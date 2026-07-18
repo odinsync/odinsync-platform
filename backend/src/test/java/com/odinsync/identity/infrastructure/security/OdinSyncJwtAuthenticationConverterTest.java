@@ -42,6 +42,22 @@ class OdinSyncJwtAuthenticationConverterTest {
 	}
 
 	@Test
+	void lowercaseRoleIsConvertedToUppercaseAuthority() {
+		JwtAuthenticationToken authentication = convert(jwtWithRoles(List.of("owner")));
+
+		assertThat(authentication.getAuthorities())
+				.containsExactly(new SimpleGrantedAuthority("ROLE_OWNER"));
+	}
+
+	@Test
+	void whitespaceIsTrimmedBeforePrefixing() {
+		JwtAuthenticationToken authentication = convert(jwtWithRoles(List.of(" ROLE_ADMIN")));
+
+		assertThat(authentication.getAuthorities())
+				.containsExactly(new SimpleGrantedAuthority("ROLE_ADMIN"));
+	}
+
+	@Test
 	void blankDuplicateAndNullRolesAreIgnored() {
 		List<String> roles = new ArrayList<>();
 		roles.add("OWNER");
@@ -49,6 +65,14 @@ class OdinSyncJwtAuthenticationConverterTest {
 		roles.add(" ");
 		roles.add(null);
 		JwtAuthenticationToken authentication = convert(jwtWithRoles(roles));
+
+		assertThat(authentication.getAuthorities())
+				.containsExactly(new SimpleGrantedAuthority("ROLE_OWNER"));
+	}
+
+	@Test
+	void normalizedAuthoritiesAreDeduplicatedAfterPrefixing() {
+		JwtAuthenticationToken authentication = convert(jwtWithRoles(List.of("OWNER", "owner", "ROLE_OWNER")));
 
 		assertThat(authentication.getAuthorities())
 				.containsExactly(new SimpleGrantedAuthority("ROLE_OWNER"));

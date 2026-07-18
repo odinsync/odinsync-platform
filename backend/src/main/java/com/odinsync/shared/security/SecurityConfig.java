@@ -12,6 +12,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,6 +25,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
 	@Bean
@@ -43,7 +45,25 @@ public class SecurityConfig {
 						.requestMatchers("/actuator/health", "/actuator/info").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
-						.anyRequest().authenticated())
+						.requestMatchers(
+								"/api/v1/admin/**"
+						)
+						.hasRole("ADMIN")
+
+						.requestMatchers(
+								"/api/v1/organizations/**"
+						)
+						.hasAnyRole("OWNER", "ADMIN")
+
+						.requestMatchers("/api/v1/security-test/admin").hasRole("ADMIN")
+
+						.requestMatchers("/api/v1/security-test/owner").hasRole("OWNER")
+
+						.requestMatchers("/api/v1/security-test/owner-or-admin")
+						.hasAnyRole("OWNER", "ADMIN")
+
+						.anyRequest().authenticated()
+				)
 				.oauth2ResourceServer(oauth2 ->
 								oauth2
 								.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))

@@ -241,6 +241,68 @@ Using the resource server prevents duplicate parsing and keeps OdinSync aligned 
 
 ---
 
+## Role-Based Authorization
+
+OdinSync access tokens carry organization roles as plain domain values:
+
+```json
+{
+  "roles": [
+    "OWNER",
+    "ADMIN"
+  ]
+}
+```
+
+The domain role values are not stored with Spring's `ROLE_` prefix. During protected API authentication, `OdinSyncJwtAuthenticationConverter` converts the JWT `roles` claim into Spring Security authorities:
+
+| JWT role | Spring authority |
+|---|---|
+| `OWNER` | `ROLE_OWNER` |
+| `ADMIN` | `ROLE_ADMIN` |
+| `MEMBER` | `ROLE_MEMBER` |
+
+The converter trims values, ignores blanks and nulls, uppercases roles, avoids double-prefixing `ROLE_`, and deduplicates authorities. Controllers do not parse bearer tokens or inspect authorization headers.
+
+Request-level authorization is configured in `SecurityConfig` for broad endpoint groups, for example temporary RBAC verification endpoints:
+
+```java
+.requestMatchers("/api/v1/security-test/admin").hasRole("ADMIN")
+.requestMatchers("/api/v1/security-test/owner").hasRole("OWNER")
+.requestMatchers("/api/v1/security-test/owner-or-admin").hasAnyRole("OWNER", "ADMIN")
+```
+
+Method-level authorization is enabled with `@EnableMethodSecurity`, allowing use cases and controllers to enforce rules with:
+
+```java
+@PreAuthorize("hasRole('OWNER')")
+@PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+@PreAuthorize("hasAuthority('ROLE_MEMBER')")
+```
+
+Authentication and authorization failures are intentionally distinct:
+
+| Scenario | Result | Handler |
+|---|---|---|
+| Missing token | `401 Unauthorized` | `OdinSyncAuthenticationEntryPoint` |
+| Malformed token | `401 Unauthorized` | `OdinSyncAuthenticationEntryPoint` |
+| Invalid signature | `401 Unauthorized` | `OdinSyncAuthenticationEntryPoint` |
+| Expired token | `401 Unauthorized` | `OdinSyncAuthenticationEntryPoint` |
+| Wrong issuer | `401 Unauthorized` | `OdinSyncAuthenticationEntryPoint` |
+| Valid token, missing role | `403 Forbidden` | `OdinSyncAccessDeniedHandler` |
+
+After successful authentication, `SecurityContextHolder` contains a `JwtAuthenticationToken`. Its principal is the validated `Jwt`, its name is the JWT subject, and its authorities are converted from the `roles` claim.
+
+Postman checks:
+
+1. Send an OWNER token to `GET /api/v1/security-test/authenticated`: expect `200 OK`.
+2. Send an OWNER token to `GET /api/v1/security-test/owner`: expect `200 OK`.
+3. Send an OWNER token to `GET /api/v1/security-test/admin`: expect `403 Forbidden`.
+4. Send an OWNER token to `GET /api/v1/security-test/owner-or-admin`: expect `200 OK`.
+5. Send no token to `GET /api/v1/security-test/admin`: expect `401 Unauthorized`.
+
+---
+
 ## 6. High-Level Protected API Flow
 
 ```mermaid

@@ -29,6 +29,9 @@ class OdinSyncAccessDeniedHandler implements AccessDeniedHandler {
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		objectMapper.writeValue(
 				response.getOutputStream(),
-				ApiErrorResponse.of("FORBIDDEN", "Access is denied"));
+				ApiErrorResponse.of(
+						"ACCESS_DENIED",
+						"You do not have permission to access this resource",
+						HttpStatus.FORBIDDEN));
 	}
 }

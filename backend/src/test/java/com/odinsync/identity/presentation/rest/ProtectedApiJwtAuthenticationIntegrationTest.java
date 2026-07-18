@@ -55,7 +55,7 @@ class ProtectedApiJwtAuthenticationIntegrationTest {
 	void validJwtAccessesProtectedCurrentUserEndpoint() throws Exception {
 		UUID userId = UUID.randomUUID();
 		UUID tenantId = UUID.randomUUID();
-		String token = accessToken(userId, tenantId, "odinsync-platform", Instant.now().plusSeconds(900));
+		String token = accessToken(userId, tenantId, "odinsync-platform", Instant.now().plusSeconds(900), List.of("OWNER"));
 
 		mockMvc.perform(get("/api/v1/users/me")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -79,7 +79,8 @@ class ProtectedApiJwtAuthenticationIntegrationTest {
 				UUID.randomUUID(),
 				UUID.randomUUID(),
 				"odinsync-platform",
-				Instant.now().plusSeconds(900));
+				Instant.now().plusSeconds(900),
+				List.of("OWNER"));
 
 		mockMvc.perform(get("/api/v1/users/me")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + modify(token)))
@@ -93,7 +94,8 @@ class ProtectedApiJwtAuthenticationIntegrationTest {
 				UUID.randomUUID(),
 				UUID.randomUUID(),
 				"odinsync-platform",
-				Instant.now().minusSeconds(3600));
+				Instant.now().minusSeconds(3600),
+				List.of("OWNER"));
 
 		mockMvc.perform(get("/api/v1/users/me")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -107,7 +109,8 @@ class ProtectedApiJwtAuthenticationIntegrationTest {
 				UUID.randomUUID(),
 				UUID.randomUUID(),
 				"other-issuer",
-				Instant.now().plusSeconds(900));
+				Instant.now().plusSeconds(900),
+				List.of("OWNER"));
 
 		mockMvc.perform(get("/api/v1/users/me")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -121,7 +124,8 @@ class ProtectedApiJwtAuthenticationIntegrationTest {
 				UUID.randomUUID(),
 				UUID.randomUUID(),
 				"odinsync-platform",
-				Instant.now().plusSeconds(900));
+				Instant.now().plusSeconds(900),
+				List.of("OWNER"));
 
 		mockMvc.perform(get("/test/authentication")
 						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -131,7 +135,75 @@ class ProtectedApiJwtAuthenticationIntegrationTest {
 				.andExpect(jsonPath("$.authorities[0]").value("ROLE_OWNER"));
 	}
 
-	private String accessToken(UUID userId, UUID tenantId, String issuer, Instant expiresAt) {
+	@Test
+	void ownerTokenCanUseOwnerEndpointsButNotAdminEndpoint() throws Exception {
+		String token = accessToken(List.of("OWNER"));
+
+		mockMvc.perform(get("/api/v1/security-test/authenticated")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/api/v1/security-test/owner")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/api/v1/security-test/admin")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+		mockMvc.perform(get("/api/v1/security-test/owner-or-admin")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void adminTokenCanUseAdminAndOwnerOrAdminEndpointsButNotOwnerEndpoint() throws Exception {
+		String token = accessToken(List.of("ADMIN"));
+
+		mockMvc.perform(get("/api/v1/security-test/admin")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/api/v1/security-test/owner")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+		mockMvc.perform(get("/api/v1/security-test/owner-or-admin")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void memberTokenCanUseMemberEndpointButNotOwnerOrAdminEndpoints() throws Exception {
+		String token = accessToken(List.of("MEMBER"));
+
+		mockMvc.perform(get("/api/v1/security-test/member")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isOk());
+		mockMvc.perform(get("/api/v1/security-test/admin")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+		mockMvc.perform(get("/api/v1/security-test/owner")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+	}
+
+	@Test
+	void protectedTestEndpointWithoutTokenReturnsUnauthorized() throws Exception {
+		mockMvc.perform(get("/api/v1/security-test/authenticated"))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+	}
+
+	private String accessToken(List<String> roles) {
+		return accessToken(
+				UUID.randomUUID(),
+				UUID.randomUUID(),
+				"odinsync-platform",
+				Instant.now().plusSeconds(900),
+				roles);
+	}
+
+	private String accessToken(UUID userId, UUID tenantId, String issuer, Instant expiresAt, List<String> roles) {
 		Instant issuedAt = expiresAt.isBefore(Instant.now())
 				? expiresAt.minusSeconds(900)
 				: Instant.now();
@@ -143,7 +215,7 @@ class ProtectedApiJwtAuthenticationIntegrationTest {
 				.id(UUID.randomUUID().toString())
 				.claim("tenant_id", tenantId.toString())
 				.claim("email", "owner@odinsync.com")
-				.claim("roles", List.of("OWNER"))
+				.claim("roles", roles)
 				.build();
 
 		return jwtEncoder.encode(JwtEncoderParameters.from(
@@ -166,6 +238,7 @@ class ProtectedApiJwtAuthenticationIntegrationTest {
 	@ComponentScan(basePackages = "com.odinsync.shared.security")
 	@Import({
 			CurrentUserController.class,
+			SecurityAuthorizationTestController.class,
 			OdinSyncJwtAuthenticationConverter.class,
 			TestAuthenticationController.class
 	})

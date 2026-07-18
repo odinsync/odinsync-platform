@@ -29,6 +29,9 @@ class OdinSyncAuthenticationEntryPoint implements AuthenticationEntryPoint {
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		objectMapper.writeValue(
 				response.getOutputStream(),
-				ApiErrorResponse.of("UNAUTHORIZED", "Authentication is required"));
+				ApiErrorResponse.of(
+						"UNAUTHORIZED",
+						"Authentication is required",
+						HttpStatus.UNAUTHORIZED));
 	}
 }
