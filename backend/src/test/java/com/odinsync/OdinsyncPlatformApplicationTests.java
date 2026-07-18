@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
+import com.odinsync.identity.infrastructure.security.OdinSyncJwtAuthenticationConverter;
 import com.odinsync.identity.application.port.out.OrganizationRepositoryPort;
 import com.odinsync.identity.application.port.out.PasswordEncoderPort;
 import com.odinsync.identity.application.port.out.RoleRepositoryPort;
@@ -94,6 +95,11 @@ class OdinsyncPlatformApplicationTests {
 					.password("{noop}password")
 					.roles("TEST")
 					.build();
+		}
+
+		@Bean
+		OdinSyncJwtAuthenticationConverter jwtAuthenticationConverter() {
+			return new OdinSyncJwtAuthenticationConverter();
 		}
 	}
 }
