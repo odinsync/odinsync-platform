@@ -16,6 +16,9 @@ class SpringCredentialsAuthenticatorAdapter implements CredentialsAuthenticatorP
 
 	private final AuthenticationManager authenticationManager;
 
+	/**
+	 * Delegates credential verification to Spring Security and returns OdinSync's authenticated-user model.
+	 */
 	@Override
 	public AuthenticatedUser authenticate(String email, String password) {
 		try {

@@ -121,6 +121,6 @@ class RefreshTokenControllerTest {
 								}
 								"""))
 				.andExpect(status().isUnauthorized())
-				.andExpect(jsonPath("$.code").value("REFRESH_TOKEN_REUSE_DETECTED"));
+				.andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
 	}
 }

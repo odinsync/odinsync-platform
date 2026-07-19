@@ -21,6 +21,9 @@ public class OdinSyncUserDetails implements UserDetails {
 	private final UserStatus userStatus;
 	private final TenantStatus tenantStatus;
 
+	/**
+	 * Creates the Spring Security user-details snapshot used during credential authentication.
+	 */
 	OdinSyncUserDetails(
 			UUID userId,
 			UUID tenantId,
@@ -38,6 +41,9 @@ public class OdinSyncUserDetails implements UserDetails {
 		this.tenantStatus = tenantStatus;
 	}
 
+	/**
+	 * Converts Spring Security user details into the application authentication model.
+	 */
 	AuthenticatedUser toAuthenticatedUser() {
 		return new AuthenticatedUser(
 				userId,
@@ -48,6 +54,9 @@ public class OdinSyncUserDetails implements UserDetails {
 				tenantStatus);
 	}
 
+	/**
+	 * Exposes OdinSync role names as Spring Security ROLE_* authorities.
+	 */
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		return roles.stream()
@@ -55,31 +64,49 @@ public class OdinSyncUserDetails implements UserDetails {
 				.toList();
 	}
 
+	/**
+	 * Returns the stored password hash used by Spring Security credential checks.
+	 */
 	@Override
 	public String getPassword() {
 		return passwordHash;
 	}
 
+	/**
+	 * Returns the normalized email address used as the Spring Security username.
+	 */
 	@Override
 	public String getUsername() {
 		return email;
 	}
 
+	/**
+	 * Keeps account-expiration policy outside Spring's built-in flag for now.
+	 */
 	@Override
 	public boolean isAccountNonExpired() {
 		return true;
 	}
 
+	/**
+	 * Keeps account-lock policy outside Spring's built-in flag for now.
+	 */
 	@Override
 	public boolean isAccountNonLocked() {
 		return true;
 	}
 
+	/**
+	 * Keeps credential-expiration policy outside Spring's built-in flag for now.
+	 */
 	@Override
 	public boolean isCredentialsNonExpired() {
 		return true;
 	}
 
+	/**
+	 * Keeps enabled-state enforcement in the application use cases.
+	 */
 	@Override
 	public boolean isEnabled() {
 		return true;

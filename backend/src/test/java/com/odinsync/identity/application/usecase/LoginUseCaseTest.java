@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.List;
 import java.time.Instant;
@@ -26,6 +27,7 @@ import com.odinsync.identity.application.port.out.CredentialsAuthenticatorPort;
 import com.odinsync.identity.domain.exception.InactiveTenantException;
 import com.odinsync.identity.domain.exception.InactiveUserException;
 import com.odinsync.identity.domain.exception.InvalidCredentialsException;
+import com.odinsync.identity.domain.model.RefreshToken;
 import com.odinsync.identity.domain.model.TenantStatus;
 import com.odinsync.identity.domain.model.UserStatus;
 
@@ -48,16 +50,16 @@ class LoginUseCaseTest {
 	void authenticatesWithNormalizedEmailAndReturnsAccessToken() {
 		AuthenticatedUser authenticatedUser = activeUser(List.of("OWNER"));
 		GeneratedAccessToken generatedToken = new GeneratedAccessToken("signed-jwt", 900);
-		IssuedRefreshToken issuedRefreshToken = new IssuedRefreshToken(
-				UUID.randomUUID(),
-				UUID.randomUUID(),
-				"refresh-token",
-				Instant.parse("2026-08-18T00:00:00Z"));
+		IssuedRefreshToken issuedRefreshToken = issuedRefreshToken("refresh-token");
 		when(credentialsAuthenticator.authenticate("owner@example.com", "Password@123"))
 				.thenReturn(authenticatedUser);
 		when(accessTokenGenerator.generate(authenticatedUser))
 				.thenReturn(generatedToken);
-		when(refreshTokenService.issue(authenticatedUser.userId(), authenticatedUser.tenantId()))
+		when(refreshTokenService.issue(
+				eq(authenticatedUser.userId()),
+				eq(authenticatedUser.tenantId()),
+				org.mockito.ArgumentMatchers.any(UUID.class),
+				org.mockito.ArgumentMatchers.any()))
 				.thenReturn(issuedRefreshToken);
 
 		LoginResult result = loginUseCase.login(new LoginCommand(
@@ -83,12 +85,12 @@ class LoginUseCaseTest {
 				.thenReturn(authenticatedUser);
 		when(accessTokenGenerator.generate(authenticatedUser))
 				.thenReturn(new GeneratedAccessToken("access-token", 900));
-		when(refreshTokenService.issue(authenticatedUser.userId(), authenticatedUser.tenantId()))
-				.thenReturn(new IssuedRefreshToken(
-						UUID.randomUUID(),
-						UUID.randomUUID(),
-						"refresh-token",
-						Instant.parse("2026-08-18T00:00:00Z")));
+		when(refreshTokenService.issue(
+				eq(authenticatedUser.userId()),
+				eq(authenticatedUser.tenantId()),
+				org.mockito.ArgumentMatchers.any(UUID.class),
+				org.mockito.ArgumentMatchers.any()))
+				.thenReturn(issuedRefreshToken("refresh-token"));
 
 		loginUseCase.login(new LoginCommand("owner@example.com", "correct-password"));
 
@@ -156,5 +158,29 @@ class LoginUseCaseTest {
 				roles,
 				UserStatus.ACTIVE,
 				TenantStatus.ACTIVE);
+	}
+
+	private static IssuedRefreshToken issuedRefreshToken(String rawToken) {
+		UUID tokenId = UUID.randomUUID();
+		UUID familyId = UUID.randomUUID();
+		Instant expiresAt = Instant.parse("2026-08-18T00:00:00Z");
+		RefreshToken refreshToken = new RefreshToken(
+				tokenId,
+				UUID.randomUUID(),
+				UUID.randomUUID(),
+				"refresh-token-hash",
+				familyId,
+				null,
+				Instant.parse("2026-07-19T00:00:00Z"),
+				expiresAt,
+				null,
+				null,
+				null,
+				null,
+				null,
+				Instant.parse("2026-07-19T00:00:00Z"),
+				Instant.parse("2026-07-19T00:00:00Z"),
+				0);
+		return new IssuedRefreshToken(tokenId, familyId, rawToken, expiresAt, refreshToken);
 	}
 }

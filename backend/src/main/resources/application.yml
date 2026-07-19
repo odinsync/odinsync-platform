@@ -22,4 +22,7 @@ odinsync:
       generate-development-keys: false
     refresh-token:
       ttl: 30d
-      token-bytes: 64
+      token-size-bytes: 64
+      retention-period: 90d
+      lock-timeout: 3s
+      max-generation-attempts: 3

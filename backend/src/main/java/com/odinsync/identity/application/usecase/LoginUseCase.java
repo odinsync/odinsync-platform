@@ -48,7 +48,11 @@ class LoginUseCase implements LoginPort {
 		}
 
 		GeneratedAccessToken accessToken = accessTokenGenerator.generate(user);
-		IssuedRefreshToken refreshToken = refreshTokenService.issue(user.userId(), user.tenantId());
+		IssuedRefreshToken refreshToken = refreshTokenService.issue(
+				user.userId(),
+				user.tenantId(),
+				java.util.UUID.randomUUID(),
+				command.metadata());
 		return new LoginResult(
 				accessToken.value(),
 				TOKEN_TYPE,

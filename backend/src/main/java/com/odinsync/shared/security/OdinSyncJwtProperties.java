@@ -12,6 +12,9 @@ public record OdinSyncJwtProperties(
 		String publicKeyLocation,
 		boolean generateDevelopmentKeys) {
 
+	/**
+	 * Applies stable JWT defaults when optional properties are omitted.
+	 */
 	public OdinSyncJwtProperties {
 		if (issuer == null || issuer.isBlank()) {
 			issuer = "odinsync-platform";

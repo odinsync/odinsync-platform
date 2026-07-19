@@ -20,6 +20,9 @@ class OdinSyncAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
 	private final ObjectMapper objectMapper;
 
+	/**
+	 * Writes OdinSync's structured 401 response when a request is unauthenticated.
+	 */
 	@Override
 	public void commence(
 			HttpServletRequest request,

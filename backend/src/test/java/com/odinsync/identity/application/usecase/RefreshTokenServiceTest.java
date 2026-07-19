@@ -99,8 +99,8 @@ class RefreshTokenServiceTest {
 	void revokedTokenReuseRevokesActiveFamilyAndFails() {
 		RefreshTokenService refreshTokenService = refreshTokenService();
 		UUID familyId = UUID.randomUUID();
-		RefreshToken revokedToken = activeToken(UUID.randomUUID(), UUID.randomUUID(), familyId)
-				.revoke(NOW.minusSeconds(60), UUID.randomUUID());
+		RefreshToken revokedToken = activeToken(UUID.randomUUID(), UUID.randomUUID(), familyId);
+		revokedToken.replaceWith(UUID.randomUUID(), NOW);
 		when(tokenHasher.hash("reused-token")).thenReturn("reused-token-hash");
 		when(refreshTokenRepository.findByTokenHashForUpdate("reused-token-hash"))
 				.thenReturn(Optional.of(revokedToken));
@@ -108,7 +108,7 @@ class RefreshTokenServiceTest {
 		assertThatThrownBy(() -> refreshTokenService.rotate("reused-token"))
 				.isInstanceOf(RefreshTokenReuseDetectedException.class);
 
-		verify(refreshTokenRepository).revokeActiveFamily(familyId, NOW);
+		verify(refreshTokenRepository).revokeFamily(familyId, NOW);
 	}
 
 	@Test
@@ -120,12 +120,17 @@ class RefreshTokenServiceTest {
 				UUID.randomUUID(),
 				"expired-token-hash",
 				UUID.randomUUID(),
+				null,
 				NOW.minus(Duration.ofDays(31)),
 				NOW.minusSeconds(1),
 				null,
 				null,
+				null,
+				null,
+				null,
 				NOW.minus(Duration.ofDays(31)),
-				NOW.minus(Duration.ofDays(31)));
+				NOW.minus(Duration.ofDays(31)),
+				0);
 		when(tokenHasher.hash("expired-token")).thenReturn("expired-token-hash");
 		when(refreshTokenRepository.findByTokenHashForUpdate("expired-token-hash"))
 				.thenReturn(Optional.of(expiredToken));
@@ -143,12 +148,17 @@ class RefreshTokenServiceTest {
 				tenantId,
 				"current-token-hash",
 				familyId,
+				null,
 				NOW.minusSeconds(60),
 				NOW.plus(Duration.ofDays(1)),
 				null,
 				null,
+				null,
+				null,
+				null,
 				NOW.minusSeconds(60),
-				NOW.minusSeconds(60));
+				NOW.minusSeconds(60),
+				0);
 	}
 
 	private RefreshTokenService refreshTokenService() {
@@ -156,7 +166,12 @@ class RefreshTokenServiceTest {
 				tokenGenerator,
 				tokenHasher,
 				refreshTokenRepository,
-				new RefreshTokenProperties(Duration.ofDays(30), 64),
+				new RefreshTokenProperties(
+						Duration.ofDays(30),
+						64,
+						Duration.ofDays(90),
+						Duration.ofSeconds(3),
+						3),
 				CLOCK);
 	}
 }

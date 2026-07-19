@@ -225,8 +225,10 @@ class ProtectedApiJwtAuthenticationIntegrationTest {
 	}
 
 	private static String modify(String token) {
-		char replacement = token.charAt(token.length() - 1) == 'a' ? 'b' : 'a';
-		return token.substring(0, token.length() - 1) + replacement;
+		String[] parts = token.split("\\.");
+		char replacement = parts[2].charAt(0) == 'a' ? 'b' : 'a';
+		parts[2] = replacement + parts[2].substring(1);
+		return String.join(".", parts);
 	}
 
 	@SpringBootConfiguration

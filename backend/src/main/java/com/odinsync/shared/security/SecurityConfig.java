@@ -1,6 +1,5 @@
 package com.odinsync.shared.security;
 
-import java.time.Clock;
 import java.util.List;
 
 import org.springframework.core.convert.converter.Converter;
@@ -29,6 +28,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+	/**
+	 * Defines public authentication endpoints, protected API rules, JWT resource-server validation, and stateless REST behavior.
+	 */
 	@Bean
 	SecurityFilterChain securityFilterChain(
 			HttpSecurity http,
@@ -47,6 +49,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
 						.requestMatchers(
 								"/api/v1/admin/**"
 						)
@@ -75,16 +78,17 @@ public class SecurityConfig {
 				.build();
 	}
 
+	/**
+	 * Provides BCrypt password hashing for credential storage and verification.
+	 */
 	@Bean
 	PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
 
-	@Bean
-	Clock clock() {
-		return Clock.systemUTC();
-	}
-
+	/**
+	 * Builds the username/password authentication manager used by the login flow.
+	 */
 	@Bean
 	AuthenticationManager authenticationManager(
 			UserDetailsService userDetailsService,
@@ -94,6 +98,9 @@ public class SecurityConfig {
 		return new ProviderManager(authenticationProvider);
 	}
 
+	/**
+	 * Configures safe local CORS defaults for stateless API clients.
+	 */
 	@Bean
 	CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();

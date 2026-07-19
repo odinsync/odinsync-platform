@@ -11,8 +11,14 @@ import org.springframework.stereotype.Component;
 @Component
 class RefreshTokenHasher implements RefreshTokenHasherPort {
 
+	/**
+	 * Hashes a raw refresh token deterministically for indexed database lookup.
+	 */
 	@Override
 	public String hash(String rawToken) {
+		if (rawToken == null || rawToken.isBlank()) {
+			throw new IllegalArgumentException("Refresh token must not be blank");
+		}
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");
 			byte[] result = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));

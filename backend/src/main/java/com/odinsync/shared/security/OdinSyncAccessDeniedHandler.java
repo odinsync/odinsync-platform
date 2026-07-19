@@ -20,6 +20,9 @@ class OdinSyncAccessDeniedHandler implements AccessDeniedHandler {
 
 	private final ObjectMapper objectMapper;
 
+	/**
+	 * Writes OdinSync's structured 403 response when an authenticated user lacks authority.
+	 */
 	@Override
 	public void handle(
 			HttpServletRequest request,

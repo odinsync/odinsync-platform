@@ -12,6 +12,9 @@ class BCryptPasswordEncoderAdapter implements PasswordEncoderPort {
 
 	private final PasswordEncoder passwordEncoder;
 
+	/**
+	 * Hashes a raw password using the configured Spring Security password encoder.
+	 */
 	@Override
 	public String encode(String rawPassword) {
 		return passwordEncoder.encode(rawPassword);

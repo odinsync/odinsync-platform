@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiErrorResponse.of(
                         "INVALID_REFRESH_TOKEN",
-                        "Refresh token is invalid or expired"
+                        "The refresh session is invalid or has expired."
                 ));
     }
 
@@ -62,8 +62,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleRefreshTokenReuseDetected() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiErrorResponse.of(
-                        "REFRESH_TOKEN_REUSE_DETECTED",
-                        "Refresh token reuse detected"
+                        "INVALID_REFRESH_TOKEN",
+                        "The refresh session is invalid or has expired."
                 ));
     }
 

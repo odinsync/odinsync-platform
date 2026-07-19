@@ -27,6 +27,9 @@ public class OdinSyncUserDetailsService implements UserDetailsService {
 	private final TenantJpaRepository tenantRepository;
 	private final UserRoleJpaRepository userRoleRepository;
 
+	/**
+	 * Loads a user, tenant, and roles for Spring Security username/password authentication.
+	 */
 	@Override
 	@Transactional(readOnly = true)
 	public UserDetails loadUserByUsername(String username) {

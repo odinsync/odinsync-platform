@@ -22,6 +22,9 @@ class JwtAccessTokenGeneratorAdapter implements AccessTokenGeneratorPort {
 	private final JwtEncoder jwtEncoder;
 	private final OdinSyncJwtProperties jwtProperties;
 
+	/**
+	 * Issues an RSA-signed JWT access token containing OdinSync user, tenant, and role claims.
+	 */
 	@Override
 	public GeneratedAccessToken generate(AuthenticatedUser user) {
 		Instant issuedAt = Instant.now();

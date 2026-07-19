@@ -36,6 +36,9 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 })
 class JwtKeyConfiguration {
 
+	/**
+	 * Builds the RSA key pair used to sign and validate OdinSync JWT access tokens.
+	 */
 	@Bean
 	KeyPair jwtKeyPair(OdinSyncJwtProperties properties, ResourceLoader resourceLoader) {
 		if (properties.generateDevelopmentKeys()) {
@@ -50,6 +53,9 @@ class JwtKeyConfiguration {
 				readPrivateKey(properties.privateKeyLocation(), resourceLoader));
 	}
 
+	/**
+	 * Creates the JWT encoder that signs outgoing access tokens with RS256.
+	 */
 	@Bean
 	JwtEncoder jwtEncoder(KeyPair jwtKeyPair) {
 		RSAPublicKey publicKey = (RSAPublicKey) jwtKeyPair.getPublic();
@@ -60,6 +66,9 @@ class JwtKeyConfiguration {
 		return new NimbusJwtEncoder(new ImmutableJWKSet<SecurityContext>(new JWKSet(rsaKey)));
 	}
 
+	/**
+	 * Creates the JWT decoder that validates incoming access tokens and issuer claims.
+	 */
 	@Bean
 	JwtDecoder jwtDecoder(KeyPair jwtKeyPair, OdinSyncJwtProperties properties) {
 		NimbusJwtDecoder decoder = NimbusJwtDecoder
@@ -70,10 +79,16 @@ class JwtKeyConfiguration {
 		return decoder;
 	}
 
+	/**
+	 * Returns whether a configuration value is absent or blank.
+	 */
 	private static boolean isBlank(String value) {
 		return value == null || value.isBlank();
 	}
 
+	/**
+	 * Generates an in-memory RSA key pair for local development and tests.
+	 */
 	private static KeyPair generateDevelopmentKeyPair() {
 		try {
 			KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
@@ -84,6 +99,9 @@ class JwtKeyConfiguration {
 		}
 	}
 
+	/**
+	 * Reads and parses a PKCS#8 RSA private key from a configured resource location.
+	 */
 	private static RSAPrivateKey readPrivateKey(String location, ResourceLoader resourceLoader) {
 		try {
 			String pem = readPem(location, resourceLoader)
@@ -97,6 +115,9 @@ class JwtKeyConfiguration {
 		}
 	}
 
+	/**
+	 * Reads and parses an X.509 RSA public key from a configured resource location.
+	 */
 	private static RSAPublicKey readPublicKey(String location, ResourceLoader resourceLoader) {
 		try {
 			String pem = readPem(location, resourceLoader)
@@ -110,6 +131,9 @@ class JwtKeyConfiguration {
 		}
 	}
 
+	/**
+	 * Loads PEM text from Spring's resource abstraction.
+	 */
 	private static String readPem(String location, ResourceLoader resourceLoader) {
 		Resource resource = resourceLoader.getResource(location);
 		try {

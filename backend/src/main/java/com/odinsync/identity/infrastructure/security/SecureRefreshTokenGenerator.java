@@ -13,11 +13,17 @@ class SecureRefreshTokenGenerator implements RefreshTokenGeneratorPort {
 	private final SecureRandom secureRandom;
 	private final int tokenBytes;
 
+	/**
+	 * Creates a generator using the configured refresh-token entropy size.
+	 */
 	SecureRefreshTokenGenerator(RefreshTokenProperties properties) {
 		this.secureRandom = new SecureRandom();
-		this.tokenBytes = properties.tokenBytes();
+		this.tokenBytes = properties.tokenSizeBytes();
 	}
 
+	/**
+	 * Generates a URL-safe opaque token value suitable for returning once to a client.
+	 */
 	@Override
 	public String generate() {
 		byte[] bytes = new byte[tokenBytes];

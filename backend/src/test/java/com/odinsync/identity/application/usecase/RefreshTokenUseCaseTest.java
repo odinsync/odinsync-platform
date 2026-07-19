@@ -2,6 +2,7 @@ package com.odinsync.identity.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -51,7 +52,7 @@ class RefreshTokenUseCaseTest {
 				List.of("OWNER"),
 				UserStatus.ACTIVE,
 				TenantStatus.ACTIVE);
-		when(refreshTokenService.rotate("old-refresh-token"))
+		when(refreshTokenService.rotate(org.mockito.ArgumentMatchers.eq("old-refresh-token"), any()))
 				.thenReturn(new RotatedRefreshToken(
 						userId,
 						tenantId,
@@ -75,7 +76,7 @@ class RefreshTokenUseCaseTest {
 	@Test
 	void failsWhenRefreshTokenUserCannotBeLoaded() {
 		UUID userId = UUID.randomUUID();
-		when(refreshTokenService.rotate("refresh-token"))
+		when(refreshTokenService.rotate(org.mockito.ArgumentMatchers.eq("refresh-token"), any()))
 				.thenReturn(new RotatedRefreshToken(
 						userId,
 						UUID.randomUUID(),
