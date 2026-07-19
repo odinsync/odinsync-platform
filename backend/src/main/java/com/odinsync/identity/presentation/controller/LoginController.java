@@ -2,7 +2,7 @@ package com.odinsync.identity.presentation.controller;
 
 import com.odinsync.identity.application.command.LoginCommand;
 import com.odinsync.identity.application.port.in.LoginPort;
-import com.odinsync.identity.application.usecase.LoginResult;
+import com.odinsync.identity.application.model.LoginResult;
 import com.odinsync.identity.presentation.dto.LoginRequest;
 import com.odinsync.identity.presentation.dto.LoginResponse;
 import jakarta.validation.Valid;

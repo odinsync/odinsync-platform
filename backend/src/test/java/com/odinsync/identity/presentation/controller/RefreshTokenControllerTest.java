@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.odinsync.identity.application.port.in.RefreshTokenPort;
-import com.odinsync.identity.application.usecase.RefreshTokenResult;
+import com.odinsync.identity.application.model.RefreshTokenResult;
 import com.odinsync.identity.domain.exception.InvalidRefreshTokenException;
 import com.odinsync.identity.domain.exception.RefreshTokenReuseDetectedException;
 import com.odinsync.shared.exception.GlobalExceptionHandler;

@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.odinsync.identity.application.usecase.AuthenticatedUser;
-import com.odinsync.identity.application.usecase.GeneratedAccessToken;
+import com.odinsync.identity.application.model.AuthenticatedUser;
+import com.odinsync.identity.application.model.GeneratedAccessToken;
 import com.odinsync.identity.domain.model.TenantStatus;
 import com.odinsync.identity.domain.model.UserStatus;
 import com.odinsync.shared.security.OdinSyncJwtProperties;

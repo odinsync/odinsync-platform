@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.odinsync.identity.application.command.RegisterOrganizationCommand;
 import com.odinsync.identity.application.port.in.RegisterOrganizationPort;
-import com.odinsync.identity.application.usecase.RegisterOrganizationResult;
+import com.odinsync.identity.application.model.RegisterOrganizationResult;
 import com.odinsync.identity.presentation.dto.RegisterOrganizationRequest;
 import com.odinsync.identity.presentation.dto.RegisterOrganizationResponse;
 

@@ -1,4 +1,4 @@
-package com.odinsync.identity.application.usecase;
+package com.odinsync.identity.application.model;
 
 public record GeneratedAccessToken(
 		String value,

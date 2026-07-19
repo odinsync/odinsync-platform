@@ -1,6 +1,10 @@
 package com.odinsync.identity.application.usecase;
 
 import com.odinsync.identity.application.command.LoginCommand;
+import com.odinsync.identity.application.model.AuthenticatedUser;
+import com.odinsync.identity.application.model.GeneratedAccessToken;
+import com.odinsync.identity.application.model.IssuedRefreshToken;
+import com.odinsync.identity.application.model.LoginResult;
 import com.odinsync.identity.application.port.in.LoginPort;
 import com.odinsync.identity.application.port.out.AccessTokenGeneratorPort;
 import com.odinsync.identity.application.port.out.CredentialsAuthenticatorPort;

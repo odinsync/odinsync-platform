@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.UUID;
 
-import com.odinsync.identity.application.usecase.AuthenticatedUser;
+import com.odinsync.identity.application.model.AuthenticatedUser;
 import com.odinsync.identity.domain.exception.InvalidCredentialsException;
 import com.odinsync.identity.domain.model.TenantStatus;
 import com.odinsync.identity.domain.model.UserStatus;

@@ -4,6 +4,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.odinsync.identity.application.model.IssuedRefreshToken;
+import com.odinsync.identity.application.model.RotatedRefreshToken;
 import com.odinsync.identity.application.port.out.RefreshTokenGeneratorPort;
 import com.odinsync.identity.application.port.out.RefreshTokenHasherPort;
 import com.odinsync.identity.application.port.out.RefreshTokenRepositoryPort;
@@ -68,6 +70,7 @@ public class RefreshTokenService {
 		}
 
 		IssuedRefreshToken replacement = issue(current.userId(), current.tenantId(), current.familyId());
+
 		refreshTokenRepository.save(current.revoke(now, replacement.id()));
 		return new RotatedRefreshToken(
 				current.userId(),

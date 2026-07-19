@@ -1,6 +1,6 @@
 package com.odinsync.identity.application.port.out;
 
-import com.odinsync.identity.application.usecase.AuthenticatedUser;
+import com.odinsync.identity.application.model.AuthenticatedUser;
 
 public interface CredentialsAuthenticatorPort {
 

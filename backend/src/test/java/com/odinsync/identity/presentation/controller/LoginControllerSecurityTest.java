@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.odinsync.identity.application.port.in.LoginPort;
-import com.odinsync.identity.application.usecase.LoginResult;
+import com.odinsync.identity.application.model.LoginResult;
 import com.odinsync.identity.domain.exception.InvalidCredentialsException;
 import com.odinsync.shared.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;

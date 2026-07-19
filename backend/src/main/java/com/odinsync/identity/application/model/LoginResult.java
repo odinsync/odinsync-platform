@@ -1,10 +1,10 @@
-package com.odinsync.identity.application.usecase;
+package com.odinsync.identity.application.model;
 
-import java.time.Instant;
 import java.util.List;
+import java.time.Instant;
 import java.util.UUID;
 
-public record RefreshTokenResult(
+public record LoginResult(
 		String accessToken,
 		String tokenType,
 		long expiresIn,

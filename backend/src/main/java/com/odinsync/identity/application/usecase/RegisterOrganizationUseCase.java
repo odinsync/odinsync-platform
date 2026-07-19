@@ -1,7 +1,6 @@
 package com.odinsync.identity.application.usecase;
 
-import java.util.UUID;
-
+import com.odinsync.identity.application.model.RegisterOrganizationResult;
 import com.odinsync.identity.domain.exception.EmailAlreadyExistsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +16,7 @@ import com.odinsync.identity.application.port.out.UserRoleAssignmentPort;
 import com.odinsync.identity.domain.model.Organization;
 import com.odinsync.identity.domain.model.Role;
 import com.odinsync.identity.domain.model.Tenant;
-import com.odinsync.identity.domain.model.SubscriptionPlan;
-import com.odinsync.identity.domain.model.TenantStatus;
 import com.odinsync.identity.domain.model.User;
-import com.odinsync.identity.domain.model.UserStatus;
 
 @Service
 class RegisterOrganizationUseCase implements RegisterOrganizationPort {

@@ -10,6 +10,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.odinsync.identity.application.command.RefreshTokenCommand;
+import com.odinsync.identity.application.model.AuthenticatedUser;
+import com.odinsync.identity.application.model.GeneratedAccessToken;
+import com.odinsync.identity.application.model.RefreshTokenResult;
+import com.odinsync.identity.application.model.RotatedRefreshToken;
 import com.odinsync.identity.application.port.out.AccessTokenGeneratorPort;
 import com.odinsync.identity.application.port.out.AuthenticatedUserLookupPort;
 import com.odinsync.identity.domain.exception.InvalidRefreshTokenException;

@@ -4,7 +4,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.odinsync.identity.application.port.out.AuthenticatedUserLookupPort;
-import com.odinsync.identity.application.usecase.AuthenticatedUser;
+import com.odinsync.identity.application.model.AuthenticatedUser;
 import com.odinsync.identity.domain.model.TenantStatus;
 import com.odinsync.identity.domain.model.UserStatus;
 import com.odinsync.identity.infrastructure.persistence.entity.RoleJpaEntity;

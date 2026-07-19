@@ -10,6 +10,10 @@ import java.util.List;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.odinsync.identity.application.model.AuthenticatedUser;
+import com.odinsync.identity.application.model.GeneratedAccessToken;
+import com.odinsync.identity.application.model.IssuedRefreshToken;
+import com.odinsync.identity.application.model.LoginResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

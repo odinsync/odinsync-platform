@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.odinsync.identity.application.port.out.AccessTokenGeneratorPort;
-import com.odinsync.identity.application.usecase.AuthenticatedUser;
-import com.odinsync.identity.application.usecase.GeneratedAccessToken;
+import com.odinsync.identity.application.model.AuthenticatedUser;
+import com.odinsync.identity.application.model.GeneratedAccessToken;
 import com.odinsync.shared.security.OdinSyncJwtProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;

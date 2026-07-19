@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.odinsync.identity.application.model.RegisterOrganizationResult;
 import org.junit.jupiter.api.Test;
 
 import com.odinsync.identity.application.command.RegisterOrganizationCommand;

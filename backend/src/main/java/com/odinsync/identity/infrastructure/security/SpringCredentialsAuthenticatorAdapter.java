@@ -1,7 +1,7 @@
 package com.odinsync.identity.infrastructure.security;
 
 import com.odinsync.identity.application.port.out.CredentialsAuthenticatorPort;
-import com.odinsync.identity.application.usecase.AuthenticatedUser;
+import com.odinsync.identity.application.model.AuthenticatedUser;
 import com.odinsync.identity.domain.exception.InvalidCredentialsException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;

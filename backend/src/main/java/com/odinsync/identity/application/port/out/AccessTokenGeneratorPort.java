@@ -1,7 +1,7 @@
 package com.odinsync.identity.application.port.out;
 
-import com.odinsync.identity.application.usecase.AuthenticatedUser;
-import com.odinsync.identity.application.usecase.GeneratedAccessToken;
+import com.odinsync.identity.application.model.AuthenticatedUser;
+import com.odinsync.identity.application.model.GeneratedAccessToken;
 
 public interface AccessTokenGeneratorPort {
 

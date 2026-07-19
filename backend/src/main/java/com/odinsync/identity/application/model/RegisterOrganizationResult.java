@@ -1,4 +1,4 @@
-package com.odinsync.identity.application.usecase;
+package com.odinsync.identity.application.model;
 
 import java.util.UUID;
 

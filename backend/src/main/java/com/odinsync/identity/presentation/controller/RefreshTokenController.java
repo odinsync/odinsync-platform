@@ -2,7 +2,7 @@ package com.odinsync.identity.presentation.controller;
 
 import com.odinsync.identity.application.command.RefreshTokenCommand;
 import com.odinsync.identity.application.port.in.RefreshTokenPort;
-import com.odinsync.identity.application.usecase.RefreshTokenResult;
+import com.odinsync.identity.application.model.RefreshTokenResult;
 import com.odinsync.identity.presentation.dto.RefreshTokenRequest;
 import com.odinsync.identity.presentation.dto.RefreshTokenResponse;
 import jakarta.validation.Valid;
