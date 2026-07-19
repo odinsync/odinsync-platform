@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class LoginUseCaseTest {
 	@Mock
 	private AccessTokenGeneratorPort accessTokenGenerator;
 
+	@Mock
+	private RefreshTokenService refreshTokenService;
+
 	@InjectMocks
 	private LoginUseCase loginUseCase;
 
@@ -40,10 +44,17 @@ class LoginUseCaseTest {
 	void authenticatesWithNormalizedEmailAndReturnsAccessToken() {
 		AuthenticatedUser authenticatedUser = activeUser(List.of("OWNER"));
 		GeneratedAccessToken generatedToken = new GeneratedAccessToken("signed-jwt", 900);
+		IssuedRefreshToken issuedRefreshToken = new IssuedRefreshToken(
+				UUID.randomUUID(),
+				UUID.randomUUID(),
+				"refresh-token",
+				Instant.parse("2026-08-18T00:00:00Z"));
 		when(credentialsAuthenticator.authenticate("owner@example.com", "Password@123"))
 				.thenReturn(authenticatedUser);
 		when(accessTokenGenerator.generate(authenticatedUser))
 				.thenReturn(generatedToken);
+		when(refreshTokenService.issue(authenticatedUser.userId(), authenticatedUser.tenantId()))
+				.thenReturn(issuedRefreshToken);
 
 		LoginResult result = loginUseCase.login(new LoginCommand(
 				" Owner@Example.com ",
@@ -52,6 +63,8 @@ class LoginUseCaseTest {
 		assertThat(result.accessToken()).isEqualTo("signed-jwt");
 		assertThat(result.tokenType()).isEqualTo("Bearer");
 		assertThat(result.expiresIn()).isEqualTo(900);
+		assertThat(result.refreshToken()).isEqualTo("refresh-token");
+		assertThat(result.refreshTokenExpiresAt()).isEqualTo(issuedRefreshToken.expiresAt());
 		assertThat(result.tenantId()).isEqualTo(authenticatedUser.tenantId());
 		assertThat(result.userId()).isEqualTo(authenticatedUser.userId());
 		assertThat(result.roles()).containsExactly("OWNER");
@@ -66,6 +79,12 @@ class LoginUseCaseTest {
 				.thenReturn(authenticatedUser);
 		when(accessTokenGenerator.generate(authenticatedUser))
 				.thenReturn(new GeneratedAccessToken("access-token", 900));
+		when(refreshTokenService.issue(authenticatedUser.userId(), authenticatedUser.tenantId()))
+				.thenReturn(new IssuedRefreshToken(
+						UUID.randomUUID(),
+						UUID.randomUUID(),
+						"refresh-token",
+						Instant.parse("2026-08-18T00:00:00Z")));
 
 		loginUseCase.login(new LoginCommand("owner@example.com", "correct-password"));
 
@@ -82,6 +101,7 @@ class LoginUseCaseTest {
 				"wrong-password")))
 				.isInstanceOf(InvalidCredentialsException.class);
 		verifyNoInteractions(accessTokenGenerator);
+		verifyNoInteractions(refreshTokenService);
 	}
 
 	@Test
@@ -101,6 +121,7 @@ class LoginUseCaseTest {
 				"correct-password")))
 				.isInstanceOf(InactiveUserException.class);
 		verifyNoInteractions(accessTokenGenerator);
+		verifyNoInteractions(refreshTokenService);
 	}
 
 	@Test
@@ -120,6 +141,7 @@ class LoginUseCaseTest {
 				"correct-password")))
 				.isInstanceOf(InactiveTenantException.class);
 		verifyNoInteractions(accessTokenGenerator);
+		verifyNoInteractions(refreshTokenService);
 	}
 
 	private static AuthenticatedUser activeUser(List<String> roles) {

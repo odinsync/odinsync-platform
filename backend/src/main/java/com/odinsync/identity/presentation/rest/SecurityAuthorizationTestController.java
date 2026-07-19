@@ -37,9 +37,9 @@ public class SecurityAuthorizationTestController {
 		return Map.of("message", "OWNER or ADMIN endpoint accessed");
 	}
 
-	@GetMapping("/employee")
-	@PreAuthorize("hasRole('EMPLOYEE')")
+	@GetMapping("/member")
+	@PreAuthorize("hasRole('MEMBER')")
 	Map<String, String> member() {
-		return Map.of("message", "EMPLOYEE endpoint accessed");
+		return Map.of("message", "MEMBER endpoint accessed");
 	}
 }

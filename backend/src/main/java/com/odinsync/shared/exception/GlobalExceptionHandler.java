@@ -4,6 +4,8 @@ import com.odinsync.identity.domain.exception.EmailAlreadyExistsException;
 import com.odinsync.identity.domain.exception.InactiveTenantException;
 import com.odinsync.identity.domain.exception.InactiveUserException;
 import com.odinsync.identity.domain.exception.InvalidCredentialsException;
+import com.odinsync.identity.domain.exception.InvalidRefreshTokenException;
+import com.odinsync.identity.domain.exception.RefreshTokenReuseDetectedException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +46,24 @@ public class GlobalExceptionHandler {
                 .body(ApiErrorResponse.of(
                         "INVALID_CREDENTIALS",
                         "Invalid email or password"
+                ));
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidRefreshToken() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiErrorResponse.of(
+                        "INVALID_REFRESH_TOKEN",
+                        "Refresh token is invalid or expired"
+                ));
+    }
+
+    @ExceptionHandler(RefreshTokenReuseDetectedException.class)
+    public ResponseEntity<ApiErrorResponse> handleRefreshTokenReuseDetected() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiErrorResponse.of(
+                        "REFRESH_TOKEN_REUSE_DETECTED",
+                        "Refresh token reuse detected"
                 ));
     }
 

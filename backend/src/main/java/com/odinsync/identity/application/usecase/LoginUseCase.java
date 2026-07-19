@@ -18,16 +18,19 @@ class LoginUseCase implements LoginPort {
 
 	private final CredentialsAuthenticatorPort credentialsAuthenticator;
 	private final AccessTokenGeneratorPort accessTokenGenerator;
+	private final RefreshTokenService refreshTokenService;
 
 	LoginUseCase(
 			CredentialsAuthenticatorPort credentialsAuthenticator,
-			AccessTokenGeneratorPort accessTokenGenerator) {
+			AccessTokenGeneratorPort accessTokenGenerator,
+			RefreshTokenService refreshTokenService) {
 		this.credentialsAuthenticator = credentialsAuthenticator;
 		this.accessTokenGenerator = accessTokenGenerator;
+		this.refreshTokenService = refreshTokenService;
 	}
 
 	@Override
-	@Transactional(readOnly = true)
+	@Transactional
 	public LoginResult login(LoginCommand command) {
 		AuthenticatedUser user = credentialsAuthenticator.authenticate(
 				command.normalizedEmail(),
@@ -41,10 +44,13 @@ class LoginUseCase implements LoginPort {
 		}
 
 		GeneratedAccessToken accessToken = accessTokenGenerator.generate(user);
+		IssuedRefreshToken refreshToken = refreshTokenService.issue(user.userId(), user.tenantId());
 		return new LoginResult(
 				accessToken.value(),
 				TOKEN_TYPE,
 				accessToken.expiresIn(),
+				refreshToken.rawToken(),
+				refreshToken.expiresAt(),
 				user.tenantId(),
 				user.userId(),
 				user.roles());

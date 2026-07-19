@@ -1,5 +1,6 @@
 package com.odinsync.shared.security;
 
+import java.time.Clock;
 import java.util.List;
 
 import org.springframework.core.convert.converter.Converter;
@@ -45,6 +46,7 @@ public class SecurityConfig {
 						.requestMatchers("/actuator/health", "/actuator/info").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
 						.requestMatchers(
 								"/api/v1/admin/**"
 						)
@@ -76,6 +78,11 @@ public class SecurityConfig {
 	@Bean
 	PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
+	}
+
+	@Bean
+	Clock clock() {
+		return Clock.systemUTC();
 	}
 
 	@Bean

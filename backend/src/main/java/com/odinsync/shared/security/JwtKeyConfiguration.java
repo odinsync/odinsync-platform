@@ -30,7 +30,10 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 @Configuration
-@EnableConfigurationProperties(OdinSyncJwtProperties.class)
+@EnableConfigurationProperties({
+		OdinSyncJwtProperties.class,
+		RefreshTokenProperties.class
+})
 class JwtKeyConfiguration {
 
 	@Bean

@@ -29,6 +29,8 @@ class LoginController {
 				result.accessToken(),
 				result.tokenType(),
 				result.expiresIn(),
+				result.refreshToken(),
+				result.refreshTokenExpiresAt(),
 				result.tenantId(),
 				result.userId(),
 				result.roles());

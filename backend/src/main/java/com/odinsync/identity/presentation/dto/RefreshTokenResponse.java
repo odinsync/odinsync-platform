@@ -1,10 +1,10 @@
-package com.odinsync.identity.application.usecase;
+package com.odinsync.identity.presentation.dto;
 
-import java.util.List;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
-public record LoginResult(
+public record RefreshTokenResponse(
 		String accessToken,
 		String tokenType,
 		long expiresIn,

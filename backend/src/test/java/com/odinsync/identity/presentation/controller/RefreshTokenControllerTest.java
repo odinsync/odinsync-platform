@@ -12,9 +12,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import com.odinsync.identity.application.port.in.LoginPort;
-import com.odinsync.identity.application.usecase.LoginResult;
-import com.odinsync.identity.domain.exception.InvalidCredentialsException;
+import com.odinsync.identity.application.port.in.RefreshTokenPort;
+import com.odinsync.identity.application.usecase.RefreshTokenResult;
+import com.odinsync.identity.domain.exception.InvalidRefreshTokenException;
+import com.odinsync.identity.domain.exception.RefreshTokenReuseDetectedException;
 import com.odinsync.shared.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,10 +28,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @ExtendWith(MockitoExtension.class)
-class LoginControllerSecurityTest {
+class RefreshTokenControllerTest {
 
 	@Mock
-	private LoginPort loginPort;
+	private RefreshTokenPort refreshTokenPort;
 
 	private MockMvc mockMvc;
 
@@ -39,84 +40,87 @@ class LoginControllerSecurityTest {
 		LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
 		validator.afterPropertiesSet();
 		mockMvc = MockMvcBuilders
-				.standaloneSetup(new LoginController(loginPort))
+				.standaloneSetup(new RefreshTokenController(refreshTokenPort))
 				.setControllerAdvice(new GlobalExceptionHandler())
 				.setValidator(validator)
 				.build();
 	}
 
 	@Test
-	void loginEndpointReturnsTokenWhenRequestIsValid() throws Exception {
+	void refreshEndpointReturnsRotatedTokenPair() throws Exception {
 		UUID tenantId = UUID.randomUUID();
 		UUID userId = UUID.randomUUID();
-		when(loginPort.login(argThat(command ->
-				"owner@example.com".equals(command.email())
-						&& "correct-password".equals(command.password()))))
-				.thenReturn(new LoginResult(
-						"access-token",
+		when(refreshTokenPort.refresh(argThat(command -> "old-refresh-token".equals(command.refreshToken()))))
+				.thenReturn(new RefreshTokenResult(
+						"new-access-token",
 						"Bearer",
 						900,
-						"refresh-token",
+						"new-refresh-token",
 						Instant.parse("2026-08-18T00:00:00Z"),
 						tenantId,
 						userId,
 						List.of("OWNER")));
 
-		mockMvc.perform(post("/api/v1/auth/login")
+		mockMvc.perform(post("/api/v1/auth/refresh")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
-								  "email": "owner@example.com",
-								  "password": "correct-password"
+								  "refreshToken": "old-refresh-token"
 								}
 								"""))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.accessToken").value("access-token"))
+				.andExpect(jsonPath("$.accessToken").value("new-access-token"))
 				.andExpect(jsonPath("$.tokenType").value("Bearer"))
 				.andExpect(jsonPath("$.expiresIn").value(900))
-				.andExpect(jsonPath("$.refreshToken").value("refresh-token"))
+				.andExpect(jsonPath("$.refreshToken").value("new-refresh-token"))
 				.andExpect(jsonPath("$.refreshTokenExpiresAt").exists())
 				.andExpect(jsonPath("$.tenantId").value(tenantId.toString()))
 				.andExpect(jsonPath("$.userId").value(userId.toString()))
 				.andExpect(jsonPath("$.roles[0]").value("OWNER"));
 
-		verify(loginPort).login(argThat(command ->
-				"owner@example.com".equals(command.email())
-						&& "correct-password".equals(command.password())));
+		verify(refreshTokenPort).refresh(argThat(command -> "old-refresh-token".equals(command.refreshToken())));
 	}
 
 	@Test
-	void invalidLoginRequestReturnsBadRequestWithoutCallingUseCase() throws Exception {
-		mockMvc.perform(post("/api/v1/auth/login")
+	void invalidRefreshRequestReturnsBadRequestWithoutCallingUseCase() throws Exception {
+		mockMvc.perform(post("/api/v1/auth/refresh")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{}"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
-		verifyNoInteractions(loginPort);
+		verifyNoInteractions(refreshTokenPort);
 	}
 
 	@Test
-	void invalidCredentialsReturnUnauthorized() throws Exception {
-		when(loginPort.login(argThat(command ->
-				"invalid@example.com".equals(command.email())
-						&& "wrong-password".equals(command.password()))))
-				.thenThrow(new InvalidCredentialsException());
+	void invalidRefreshTokenReturnsUnauthorized() throws Exception {
+		when(refreshTokenPort.refresh(argThat(command -> "invalid-token".equals(command.refreshToken()))))
+				.thenThrow(new InvalidRefreshTokenException());
 
-		mockMvc.perform(post("/api/v1/auth/login")
+		mockMvc.perform(post("/api/v1/auth/refresh")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
-								  "email": "invalid@example.com",
-								  "password": "wrong-password"
+								  "refreshToken": "invalid-token"
 								}
 								"""))
 				.andExpect(status().isUnauthorized())
-				.andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
-				.andExpect(jsonPath("$.message").value("Invalid email or password"));
+				.andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
+	}
 
-		verify(loginPort).login(argThat(command ->
-				"invalid@example.com".equals(command.email())
-						&& "wrong-password".equals(command.password())));
+	@Test
+	void reusedRefreshTokenReturnsUnauthorized() throws Exception {
+		when(refreshTokenPort.refresh(argThat(command -> "reused-token".equals(command.refreshToken()))))
+				.thenThrow(new RefreshTokenReuseDetectedException());
+
+		mockMvc.perform(post("/api/v1/auth/refresh")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "refreshToken": "reused-token"
+								}
+								"""))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("REFRESH_TOKEN_REUSE_DETECTED"));
 	}
 }

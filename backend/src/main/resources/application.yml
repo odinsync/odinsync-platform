@@ -20,3 +20,6 @@ odinsync:
       issuer: odinsync-platform
       access-token-ttl: 15m
       generate-development-keys: false
+    refresh-token:
+      ttl: 30d
+      token-bytes: 64
