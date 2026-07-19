@@ -1,299 +1,593 @@
-# Event Storming
+OdinSync Event Storming
 
-This document captures the key business events, commands, actors, policies, and aggregates in OdinSync.
+Overview
 
-Event storming helps us understand business workflows before designing APIs, databases, or services.
+This document identifies the core business events, commands, actors, policies, and aggregates that drive the OdinSync platform.
 
----
+It serves as the bridge between business requirements and implementation.
 
-## 1. Core Business Workflow
+The goals of event storming are to:
 
-Business Owner registers organization  
-→ Tenant is created  
-→ Owner user is created  
-→ Customer is created  
-→ Product is added  
-→ Stock is added  
-→ Sales order is created  
-→ Inventory is reserved  
-→ Invoice is generated  
-→ Payment is recorded  
-→ Business data becomes available for reporting
+- Discover business workflows
+- Identify aggregates
+- Define bounded-context interactions
+- Minimize coupling between modules
+- Prepare for future event-driven architecture
+- Simplify eventual microservice extraction
 
----
+This document describes business behavior rather than technical implementation.
 
-## 2. Actors
+⸻
 
-- Business Owner
-- Tenant Admin
-- Sales Manager
+Event Storming Concepts
+
+Actor
+
+An actor initiates a business action.
+
+Examples:
+
+- Organization Owner
+- Administrator
+- Sales Representative
 - Inventory Manager
 - Accountant
-- Employee
-- System
-- Future AI Copilot
+- Customer (external)
+- System Scheduler
 
----
+⸻
 
-## 3. Commands
+Command
 
-Commands represent user or system actions.
+A command represents an intention to perform work.
 
-### Identity & Access
+Commands are written in the imperative.
+
+Examples:
 
 - Register Organization
 - Login User
-- Invite User
-- Assign Role
+- Create Customer
+- Create Product
+- Reserve Inventory
+- Create Sales Order
+- Issue Invoice
+
+Commands may succeed or fail.
+
+⸻
+
+Aggregate
+
+An aggregate protects business consistency.
+
+Examples:
+
+- User
+- Organization
+- Customer
+- Product
+- Warehouse
+- Sales Order
+- Invoice
+
+Every command targets exactly one aggregate.
+
+⸻
+
+Domain Event
+
+A domain event records something that has already happened.
+
+Events are written in the past tense.
+
+Examples:
+
+- UserRegistered
+- CustomerCreated
+- ProductActivated
+- InventoryReserved
+- SalesOrderConfirmed
+- InvoiceIssued
+- PaymentReceived
+
+Events are immutable.
+
+⸻
+
+Policy
+
+A policy reacts to one event by issuing another command.
+
+Example:
+
+SalesOrderConfirmed
+        │
+        ▼
+Reserve Inventory
+
+Policies automate business workflows.
+
+⸻
+
+Platform Event Flow
+
+Actor
+   │
+   ▼
+Command
+   │
+   ▼
+Aggregate
+   │
+   ▼
+Domain Event
+   │
+   ▼
+Policy
+   │
+   ▼
+Next Command
+
+⸻
+
+Identity Events
+
+Workflow
+
+Organization Owner
+        │
+Register Organization
+        │
+Tenant Aggregate
+        │
+TenantCreated
+        │
+Organization Aggregate
+        │
+OrganizationCreated
+        │
+User Aggregate
+        │
+OwnerUserCreated
+        │
+Role Assignment
+        │
+OwnerRoleAssigned
+        │
+Authentication Ready
+
+⸻
+
+Commands
+
+- Register Organization
+- Authenticate User
+- Refresh Access Token
+- Logout Session
+- Logout All Sessions
 - Disable User
+- Change Password
 
-### Organization
+⸻
 
-- Create Organization Profile
-- Update Organization Profile
+Events
 
-### CRM
+- TenantCreated
+- OrganizationCreated
+- UserRegistered
+- UserAuthenticated
+- AccessTokenIssued
+- RefreshTokenRotated
+- SessionCreated
+- SessionRevoked
+- PasswordChanged
+- UserDisabled
+
+⸻
+
+Organization Events
+
+Commands
+
+- Update Organization
+- Change Currency
+- Change Time Zone
+- Update Business Settings
+
+⸻
+
+Events
+
+- OrganizationUpdated
+- BusinessSettingsUpdated
+- CurrencyChanged
+- TimeZoneChanged
+
+⸻
+
+CRM Events
+
+Customer Creation
+
+Sales Representative
+        │
+Create Customer
+        │
+Customer Aggregate
+        │
+CustomerCreated
+
+⸻
+
+Lead Conversion
+
+Lead
+        │
+Convert Lead
+        │
+Customer Aggregate
+        │
+CustomerCreated
+        │
+LeadConverted
+
+⸻
+
+Commands
 
 - Create Customer
 - Update Customer
-- Search Customer
+- Archive Customer
+- Create Contact
+- Create Lead
+- Convert Lead
+- Create Opportunity
+- Complete Activity
 
-### Catalog
+⸻
 
-- Create Product
-- Update Product
-- Create Category
-- Update Product Price
-
-### Inventory
-
-- Add Stock
-- Reserve Stock
-- Release Reserved Stock
-- Adjust Stock
-
-### Sales
-
-- Create Sales Order
-- Confirm Sales Order
-- Cancel Sales Order
-
-### Finance
-
-- Generate Invoice
-- Record Payment
-- Mark Invoice As Paid
-- Mark Invoice As Partially Paid
-
----
-
-## 4. Domain Events
-
-Domain events represent facts that already happened.
-
-### Identity & Access
-
-- OrganizationRegistered
-- TenantCreated
-- UserCreated
-- UserLoggedIn
-- UserInvited
-- RoleAssigned
-- UserDisabled
-
-### CRM
+Events
 
 - CustomerCreated
 - CustomerUpdated
+- CustomerArchived
+- ContactCreated
+- LeadCreated
+- LeadConverted
+- OpportunityCreated
+- OpportunityWon
+- OpportunityLost
+- ActivityCompleted
 
-### Catalog
+⸻
+
+Catalog Events
+
+Product Creation
+
+Product Manager
+        │
+Create Product
+        │
+Product Aggregate
+        │
+ProductCreated
+
+⸻
+
+Commands
+
+- Create Product
+- Update Product
+- Activate Product
+- Deactivate Product
+- Update Price
+
+⸻
+
+Events
 
 - ProductCreated
 - ProductUpdated
-- CategoryCreated
+- ProductActivated
+- ProductDeactivated
 - ProductPriceChanged
 
-### Inventory
+⸻
 
-- StockAdded
-- StockReserved
-- StockReservationFailed
-- ReservedStockReleased
-- StockAdjusted
+Inventory Events
 
-### Sales
+Inventory Reservation
 
+Sales Order Confirmed
+        │
+Reserve Inventory
+        │
+Inventory Aggregate
+        │
+InventoryReserved
+
+⸻
+
+Goods Receipt
+
+Receive Stock
+        │
+Inventory Aggregate
+        │
+InventoryReceived
+
+⸻
+
+Commands
+
+- Receive Inventory
+- Adjust Inventory
+- Reserve Inventory
+- Release Reservation
+- Transfer Inventory
+
+⸻
+
+Events
+
+- InventoryReceived
+- InventoryAdjusted
+- InventoryReserved
+- ReservationReleased
+- InventoryTransferred
+
+⸻
+
+Sales Events
+
+Sales Order Workflow
+
+Sales Representative
+        │
+Create Sales Order
+        │
+Sales Order Aggregate
+        │
+SalesOrderCreated
+        │
+Confirm Sales Order
+        │
+SalesOrderConfirmed
+        │
+Reserve Inventory
+        │
+InventoryReserved
+        │
+Ready for Fulfillment
+
+⸻
+
+Commands
+
+- Create Quotation
+- Approve Quotation
+- Create Sales Order
+- Confirm Sales Order
+- Cancel Sales Order
+- Ship Order
+- Complete Order
+
+⸻
+
+Events
+
+- QuotationCreated
+- QuotationApproved
 - SalesOrderCreated
 - SalesOrderConfirmed
 - SalesOrderCancelled
+- OrderShipped
+- OrderDelivered
+- OrderCompleted
 
-### Finance
+⸻
 
-- InvoiceGenerated
-- PaymentRecorded
-- InvoicePartiallyPaid
-- InvoicePaid
+Finance Events
 
----
+Invoice Workflow
 
-## 5. Policies
+SalesOrderCompleted
+        │
+Issue Invoice
+        │
+Invoice Aggregate
+        │
+InvoiceIssued
+        │
+Receive Payment
+        │
+PaymentReceived
 
-Policies describe automatic reactions to events.
+⸻
 
-### Registration Policy
+Commands
 
-When `OrganizationRegistered` happens:
+- Issue Invoice
+- Cancel Invoice
+- Record Payment
+- Issue Credit Note
+- Issue Debit Note
 
-- Create tenant
-- Create organization
-- Create owner user
-- Assign owner role
+⸻
 
-### Sales Order Policy
+Events
 
-When `SalesOrderCreated` happens:
+- InvoiceIssued
+- InvoiceCancelled
+- PaymentReceived
+- CreditNoteIssued
+- DebitNoteIssued
 
-- Validate customer
-- Validate products
-- Calculate order total
+⸻
 
-### Inventory Reservation Policy
+Notification Events
 
-When `SalesOrderConfirmed` happens:
+Notification normally reacts to events from other bounded contexts.
 
-- Check available stock
-- Reserve inventory
-- If stock is unavailable, reject confirmation
+Examples:
 
-### Invoice Policy
-
-When `StockReserved` happens:
-
-- Generate invoice for the sales order
-
-### Payment Policy
-
-When `PaymentRecorded` happens:
-
-- Update invoice paid amount
-- Mark invoice as partially paid or paid
-
-### Cancellation Policy
-
-When `SalesOrderCancelled` happens:
-
-- Release reserved stock
-- Cancel invoice if applicable
-
----
-
-## 6. Aggregates
-
-Aggregates protect business rules.
-
-### Tenant
-
-Protects:
-- Tenant identity
-- Tenant status
-- Data ownership boundary
-
-### User
-
-Protects:
-- Authentication identity
-- User status
-- Role assignment
-
-### Organization
-
-Protects:
-- Business profile
-- Tenant organization details
-
-### Customer
-
-Protects:
-- Customer identity
-- Contact details
-
-### Product
-
-Protects:
-- Product identity
-- SKU uniqueness within tenant
-- Product status
-
-### InventoryItem
-
-Protects:
-- Available quantity
-- Reserved quantity
-- Stock reservation rules
-
-### SalesOrder
-
-Protects:
-- Order lifecycle
-- Order status
-- Order total
-- Order items
-
-### Invoice
-
-Protects:
-- Invoice amount
-- Paid amount
-- Payment status
-
-### Payment
-
-Protects:
-- Payment amount
-- Payment method
-- Payment date
-
----
-
-## 7. MVP Event Flow
-
-```text
-RegisterOrganization
-        ↓
-OrganizationRegistered
-        ↓
-TenantCreated
-        ↓
-UserCreated
-        ↓
-RoleAssigned
-
-CreateCustomer
-        ↓
-CustomerCreated
-
-CreateProduct
-        ↓
-ProductCreated
-
-AddStock
-        ↓
-StockAdded
-
-CreateSalesOrder
-        ↓
-SalesOrderCreated
-
-ConfirmSalesOrder
-        ↓
-StockReserved
-        ↓
+UserRegistered
+↓
+Send Welcome Email
+InvoiceIssued
+↓
+Send Invoice Email
 SalesOrderConfirmed
-        ↓
-InvoiceGenerated
+↓
+Send Order Confirmation
 
-RecordPayment
-        ↓
-PaymentRecorded
-        ↓
-InvoicePaid / InvoicePartiallyPaid
+⸻
+
+Commands
+
+- Send Email
+- Send SMS
+- Send Push Notification
+
+⸻
+
+Events
+
+- NotificationSent
+- NotificationFailed
+
+⸻
+
+Cross-Context Policies
+
+Customer Created
+
+CustomerCreated
+        │
+Create Default Preferences
+
+⸻
+
+Sales Order Confirmed
+
+SalesOrderConfirmed
+        │
+Reserve Inventory
+
+⸻
+
+Inventory Reserved
+
+InventoryReserved
+        │
+Continue Fulfillment
+
+⸻
+
+Order Delivered
+
+OrderDelivered
+        │
+Issue Invoice
+
+⸻
+
+Invoice Issued
+
+InvoiceIssued
+        │
+Send Invoice Email
+
+⸻
+
+Payment Received
+
+PaymentReceived
+        │
+Update Outstanding Balance
+
+⸻
+
+Event Ownership
+
+Each event belongs to exactly one bounded context.
+
+Event	Owner
+UserRegistered	Identity
+CustomerCreated	CRM
+ProductCreated	Catalog
+InventoryReserved	Inventory
+SalesOrderConfirmed	Sales
+InvoiceIssued	Finance
+NotificationSent	Notification
+
+Only the owning bounded context may define the event’s meaning.
+
+⸻
+
+Event Naming Guidelines
+
+Use past tense.
+
+Good examples:
+
+- CustomerCreated
+- ProductActivated
+- InventoryReserved
+- SalesOrderConfirmed
+- InvoiceIssued
+
+Avoid:
+
+- CreateCustomer
+- ReserveInventory
+- ConfirmOrder
+
+Those are commands, not events.
+
+⸻
+
+Future Event Bus
+
+The current modular monolith may publish events in-process.
+
+Future architecture may introduce:
+
+Sales
+↓
+Kafka Topic
+↓
+Finance
+↓
+Notification
+
+Possible technologies:
+
+- Spring Application Events
+- Spring Modulith Events
+- Kafka
+- RabbitMQ
+- Google Pub/Sub
+
+The business events defined in this document remain unchanged regardless of transport.
+
+⸻
+
+Summary
+
+Event storming identifies how business capabilities collaborate through commands and events.
+
+Each bounded context owns its aggregates and publishes its own domain events.
+
+Policies react to those events to coordinate business workflows while preserving loose coupling.
+
+This approach prepares OdinSync for:
+
+- Modular monolith development
+- Event-driven workflows
+- Future microservice extraction
+- Saga-based orchestration
+- Reliable business process automation
+
