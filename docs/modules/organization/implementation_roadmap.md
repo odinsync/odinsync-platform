@@ -37,76 +37,90 @@ Do not create duplicate abstractions for:
 - Current actor resolution
 - Error responses
 - Time providers
-- Auditing
-- Security permissions
+- Audit metadata
+- Permission checks
+- Persistence base classes
+- Testcontainers configuration
+- Test fixtures already available in shared test support
 
-Each phase should end with:
+Every phase must end with:
 
 ```bash
 ./mvnw test
 ```
 
-Where integration tests are included:
+Where integration tests are configured separately, also run:
 
 ```bash
 ./mvnw verify
 ```
 
+A phase is not complete until:
+
+- The implementation compiles.
+- New tests pass.
+- Existing tests remain green.
+- No unrelated behavior is changed.
+- The phase summary records all deviations from the approved design.
+
 ---
 
-# Roadmap Overview
+# Roadmap Summary
 
-| Phase | Scope | Primary Output |
+| Phase | Scope | Primary Outcome |
 |---|---|---|
-| Phase 0 | Repository analysis | Implementation decision record |
-| Phase 1 | Domain primitives | Value objects and domain exceptions |
-| Phase 2 | Aggregate design | Organization aggregate and domain events |
-| Phase 3 | Application contracts | Ports, commands, queries, and DTOs |
-| Phase 4 | Application use cases | Profile and settings services |
-| Phase 5 | Persistence model | JPA entities and mappings |
-| Phase 6 | Database schema | Flyway migration |
-| Phase 7 | Repository implementation | Spring Data repository and adapter |
-| Phase 8 | REST API | Requests, responses, controllers |
-| Phase 9 | Security integration | Actor resolution and permissions |
-| Phase 10 | Error handling | Problem Details and exception mapping |
-| Phase 11 | Integration verification | Repository and migration tests |
-| Phase 12 | Security verification | Authentication and authorization tests |
-| Phase 13 | Tenant isolation | Cross-tenant protection tests |
-| Phase 14 | Concurrency | Optimistic-locking behavior |
-| Phase 15 | Event publication | Transactional domain event delivery |
-| Phase 16 | Observability | Logs, metrics, and tracing |
-| Phase 17 | Architecture and E2E | ArchUnit and complete workflows |
-| Phase 18 | Final hardening | Review, cleanup, and documentation sync |
+| Phase 0 | Repository discovery and baseline | Verified implementation plan based on actual codebase |
+| Phase 1 | Shared Organization domain primitives | IDs, enums, value objects, and validation |
+| Phase 2 | Organization aggregate | Aggregate behavior, invariants, audit updates, domain events |
+| Phase 3 | Application contracts | Repository port, actor port, authorization port, time and event ports |
+| Phase 4 | Profile application use cases | Get and update Organization profile |
+| Phase 5 | Settings application use cases | Get and update Organization settings |
+| Phase 6 | Persistence schema | Flyway migration and schema validation |
+| Phase 7 | JPA entity model | Root and owned persistence entities |
+| Phase 8 | Persistence mapper | Domain-to-JPA and JPA-to-domain conversion |
+| Phase 9 | Repository adapter | Tenant-scoped persistence operations |
+| Phase 10 | REST profile APIs | Profile request, response, controller, and validation |
+| Phase 11 | REST settings APIs | Settings request, response, controller, and validation |
+| Phase 12 | Security integration | Authenticated actor and permission enforcement |
+| Phase 13 | Error handling | Stable Organization error catalogue and Problem Details |
+| Phase 14 | Tenant-isolation verification | Cross-tenant security and repository tests |
+| Phase 15 | Concurrency | Optimistic locking and 409 conflict handling |
+| Phase 16 | Event publication | Post-persistence domain event publication |
+| Phase 17 | Observability | Structured logs, metrics, and tracing integration |
+| Phase 18 | Architecture and end-to-end tests | Boundary enforcement and complete workflows |
+| Phase 19 | Documentation reconciliation | Final implementation documentation and readiness review |
 
 ---
 
-# Phase 0: Repository Analysis and Implementation Baseline
+# Phase 0: Repository Discovery and Baseline
 
 ## Goal
 
-Understand the existing OdinSync architecture before adding Organization code.
+Understand the existing OdinSync codebase before adding Organization code.
+
+No Organization business implementation should be added in this phase.
 
 ## Tasks
 
 Inspect:
 
-- Existing module package structures
-- Identity domain model
-- Shared identifier types
-- JWT principal type
-- `CurrentActorProvider`
-- Permission format
-- Global exception handler
-- Problem Details implementation
-- Audit metadata conventions
-- Existing domain-event abstraction
-- Existing time-provider abstraction
-- Spring Data repository patterns
-- UUID persistence format
-- Flyway migration history
-- Testcontainers setup
-- Maven test profiles
-- Formatting and static-analysis configuration
+- Root Maven configuration
+- Java and Spring Boot versions
+- Existing module package structure
+- Identity bounded context
+- Shared domain abstractions
+- Existing security configuration
+- Existing JWT principal
+- Existing permission representation
+- Existing exception hierarchy
+- Existing Problem Details response
+- Existing Flyway migrations
+- Existing MySQL UUID mappings
+- Existing auditing strategy
+- Existing event publisher abstraction
+- Existing Testcontainers setup
+- Existing architecture tests
+- Existing CI commands
 
 Run:
 
@@ -114,33 +128,47 @@ Run:
 ./mvnw test
 ```
 
+If configured:
+
+```bash
+./mvnw verify
+```
+
 ## Deliverable
 
-Create a short implementation note containing:
+Create an implementation discovery note containing:
 
-- Existing abstractions that will be reused
-- Missing abstractions that need to be introduced
-- Final package structure
-- UUID storage decision
-- Security principal integration decision
-- Flyway migration number
-- Test execution strategy
-- Any differences between documentation and current codebase
+- Existing abstractions that Organization will reuse
+- Missing abstractions that must be created
+- Confirmed package structure
+- Confirmed UUID database type
+- Next Flyway migration number
+- Confirmed permission naming format
+- Confirmed authenticated-principal type
+- Confirmed error-response format
+- Confirmed event publication approach
+- Current build result
 
 ## Acceptance Criteria
 
-- No Organization production code is added yet.
-- Existing tests pass.
-- No shared abstraction is duplicated.
-- Implementation decisions are documented.
+- No production behavior changes.
+- Existing test suite passes.
+- All planned reuse points are documented.
+- Any conflict between the approved documentation and current code is identified before implementation starts.
+
+## Codex Task Name
+
+```text
+ORG-00 Repository Discovery and Baseline
+```
 
 ---
 
-# Phase 1: Domain Value Objects and Exceptions
+# Phase 1: Organization Domain Primitives
 
 ## Goal
 
-Implement the immutable domain primitives required by the Organization aggregate.
+Implement the Organization module's foundational value objects and enums without creating the aggregate yet.
 
 ## Scope
 
@@ -148,12 +176,15 @@ Implement or reuse:
 
 ```text
 OrganizationId
+TenantId
+UserId
 OrganizationName
 TaxRegistrationNumber
 Address
 EmailAddress
 PhoneNumber
 Website
+OrganizationContact
 CurrencyCode
 OrganizationTimeZone
 OrganizationLocale
@@ -161,67 +192,132 @@ DateFormat
 TimeFormat
 WeekStart
 OrganizationSettings
-OrganizationContact
 OrganizationStatus
 AuditMetadata
 ```
 
-Reuse existing:
+Reuse shared `TenantId`, `UserId`, or audit abstractions where they already exist.
 
-```text
-TenantId
-UserId
-```
+## Required Validation
 
-when already available.
+### OrganizationName
 
-## Validation Rules
+- Legal name required
+- Legal name trimmed
+- Maximum 200 characters
+- Display name required
+- Display name trimmed
+- Maximum 120 characters
 
-Implement:
+### TaxRegistrationNumber
 
-- Required and maximum-length rules
-- Input trimming
-- Email normalization
-- Currency validation using `Currency`
-- Timezone validation using `ZoneId`
-- Locale normalization using BCP 47
-- Website scheme validation
-- Country code normalization
-- Enum validation
+- Optional
+- Trimmed
+- Maximum 50 characters
+
+### Address
+
+- Line 1 required
+- Line 2 optional
+- City required
+- State required for the first version
+- Postal code required
+- Country code normalized to uppercase
+- Country code must contain two alphabetic characters
+
+### EmailAddress
+
+- Required
+- Trimmed
+- Normalized according to existing policy
+- Maximum 254 characters
+- Practical syntax validation
+
+### PhoneNumber
+
+- Required
+- Trimmed
+- Maximum 30 characters
+- Reject alphabetic input
+- Avoid adding a new external library unless approved
+
+### Website
+
+- Optional
+- Maximum 500 characters
+- Reject unsupported URI schemes
+- Reject embedded credentials
+
+### CurrencyCode
+
+- Uppercase normalization
+- Validate using `java.util.Currency`
+
+### OrganizationTimeZone
+
+- Validate using `ZoneId.of`
+
+### OrganizationLocale
+
+- Normalize using BCP 47 conventions
+- Reject blank or unsupported values according to platform policy
 
 ## Tests
 
-Create focused tests for each value object.
+Create plain unit tests for every value object.
 
-Examples:
+Minimum test categories:
 
-```text
-OrganizationNameTest
-AddressTest
-EmailAddressTest
-CurrencyCodeTest
-OrganizationTimeZoneTest
-OrganizationLocaleTest
-OrganizationSettingsTest
-```
+- Valid input
+- Boundary lengths
+- Whitespace normalization
+- Null input
+- Blank input
+- Invalid format
+- Equality
+- Immutability
+
+Do not start Spring.
 
 ## Out of Scope
 
-Do not implement:
-
 - Organization aggregate
-- JPA entities
+- JPA
 - Controllers
 - Security
-- Repositories
+- Flyway
+- Events
 
 ## Acceptance Criteria
 
-- Domain primitives are immutable.
-- Invalid values fail with domain-specific exceptions.
-- Domain code has no Spring or JPA dependencies.
-- All value-object tests pass.
-- Full Maven unit test suite passes.
+- Domain primitives compile independently of Spring and JPA.
+- All validation tests pass.
+- Enum values are standardized as:
+
+```text
+ACTIVE
+SUSPENDED
+ARCHIVED
+```
+
+```text
+TWELVE_HOUR
+TWENTY_FOUR_HOUR
+```
+
+```text
+MONDAY
+SUNDAY
+SATURDAY
+```
+
+- No duplicate shared identifiers are introduced.
+
+## Codex Task Name
+
+```text
+ORG-01 Domain Primitives and Value Objects
+```
 
 ---
 
@@ -229,7 +325,7 @@ Do not implement:
 
 ## Goal
 
-Implement the Organization aggregate root and its business behavior.
+Implement the Organization aggregate, aggregate invariants, audit behavior, state transitions, and domain-event recording.
 
 ## Scope
 
@@ -243,160 +339,218 @@ OrganizationSettingsUpdated
 OrganizationStatusChanged
 ```
 
-Required aggregate operations:
+## Aggregate State
 
 ```text
-create
-reconstitute
-updateProfile
-updateSettings
-activate
-suspend
-archive
-pullDomainEvents
+id
+tenantId
+name
+taxRegistrationNumber
+address
+contact
+settings
+status
+version
+auditMetadata
+domainEvents
+```
+
+## Required Factory Methods
+
+```java
+Organization.create(...)
+```
+
+```java
+Organization.reconstitute(...)
+```
+
+Creation must:
+
+- Assign initial state.
+- Set status to `ACTIVE`.
+- Initialize audit metadata.
+- Register `OrganizationCreated`.
+
+Reconstitution must:
+
+- Restore persisted state.
+- Preserve version.
+- Preserve audit metadata.
+- Register no events.
+
+## Required Behavior
+
+```java
+updateProfile(...)
+updateSettings(...)
+activate(...)
+suspend(...)
+archive(...)
+pullDomainEvents()
 ```
 
 ## Business Rules
 
-Enforce:
-
-- Tenant ownership is immutable.
-- Archived organizations cannot be modified.
-- No-op updates do not create events.
-- Profile changes update audit metadata.
-- Settings changes update audit metadata.
-- Status transitions are explicit.
-- Reconstitution does not publish creation events.
-- Creation initializes audit metadata and status.
+- Tenant ID is immutable.
+- Archived organizations cannot be updated.
+- Archived organizations cannot be reactivated.
+- No-op profile updates do not alter audit metadata.
+- No-op settings updates do not alter audit metadata.
+- No-op operations do not publish events.
+- Successful changes update `updatedAt` and `updatedBy`.
+- Creation metadata remains unchanged after updates.
+- Pulled domain events are cleared from the aggregate.
 
 ## Tests
 
-Cover:
+Create aggregate tests for:
 
-- Successful creation
-- Initial active status
-- Audit initialization
-- Creation event
-- Profile update
-- Settings update
+- Creation
+- Reconstitution
+- Profile updates
+- Settings updates
 - Status transitions
-- Archived-state restrictions
-- No-op update
+- Invalid state transitions
+- Audit behavior
+- No-op behavior
+- Event payloads
 - Event clearing
-- Reconstitution behavior
 
 ## Out of Scope
 
-Do not implement:
-
+- Repository
 - Application services
-- Persistence
-- HTTP
-- Security integration
+- JPA
+- Controllers
+- Spring event publication
 
 ## Acceptance Criteria
 
-- Aggregate invariants are enforced.
-- Creation and reconstitution are separate.
-- Domain events contain required metadata.
-- Domain tests pass without Spring.
-- No infrastructure imports exist in the domain package.
+- Aggregate is framework-independent.
+- All invariants are tested.
+- Reconstitution emits no event.
+- Every state-changing operation emits exactly the expected event.
+- No-op changes emit no event.
+
+## Codex Task Name
+
+```text
+ORG-02 Organization Aggregate and Domain Events
+```
 
 ---
 
-# Phase 3: Application Contracts and Ports
+# Phase 3: Application Ports and Contracts
 
 ## Goal
 
-Define the Organization module’s application boundaries without implementing orchestration yet.
+Define the Organization module's application boundaries without implementing HTTP or persistence adapters.
 
 ## Scope
 
-Implement input models:
-
-```text
-UpdateOrganizationCommand
-UpdateOrganizationSettingsCommand
-AddressCommand
-ContactCommand
-ProvisionOrganizationCommand
-```
-
-Implement output models:
-
-```text
-OrganizationResponse
-OrganizationSettingsResponse
-OrganizationSummary
-AddressResponse
-ContactResponse
-```
-
-Implement ports:
+Implement application or domain ports for:
 
 ```text
 OrganizationRepository
 CurrentActorProvider
 OrganizationAuthorizationService
-DomainEventPublisher
 TimeProvider
+DomainEventPublisher
 ```
 
-Reuse existing platform ports wherever possible.
+Reuse existing equivalents wherever possible.
 
-Implement query or use-case interfaces:
+## Repository Contract
+
+Required methods:
+
+```java
+Optional<Organization> findByTenantId(TenantId tenantId);
+
+Optional<Organization> findByIdAndTenantId(
+        OrganizationId organizationId,
+        TenantId tenantId);
+
+boolean existsByTenantId(TenantId tenantId);
+
+Organization save(Organization organization);
+```
+
+## Authenticated Actor Contract
+
+Reuse or define:
 
 ```text
-GetOrganizationProfileUseCase
-UpdateOrganizationProfileUseCase
-GetOrganizationSettingsUseCase
-UpdateOrganizationSettingsUseCase
-ProvisionOrganizationUseCase
+userId
+tenantId
+roles
+permissions
 ```
 
-## Public Contract
+The Organization module must consume a trusted actor abstraction and must not parse JWT claims.
 
-Add a narrow cross-module query contract if required:
+## Authorization Contract
 
-```text
-OrganizationQuery
-OrganizationSummary
+Define methods such as:
+
+```java
+requireProfileRead(AuthenticatedActor actor);
+
+requireProfileUpdate(AuthenticatedActor actor);
+
+requireSettingsRead(AuthenticatedActor actor);
+
+requireSettingsUpdate(AuthenticatedActor actor);
 ```
 
-Do not expose the aggregate directly to other modules.
+## Time Contract
+
+Reuse or define:
+
+```java
+Instant now();
+```
+
+## Event Contract
+
+Reuse or define:
+
+```java
+void publishAll(Collection<? extends DomainEvent> events);
+```
 
 ## Tests
 
-Add contract-level tests only where meaningful, such as:
-
-- DTO immutability
-- Mapper conversion
-- Command normalization policy
+Only contract-level tests or simple authorization implementation tests are needed in this phase.
 
 ## Out of Scope
 
-Do not implement:
-
-- Application service logic
-- JPA
-- Controllers
-- Security adapters
+- Application use cases
+- Spring Security adapter
+- Spring event publisher
+- JPA adapter
 
 ## Acceptance Criteria
 
-- Application contracts compile.
-- Ports contain no Spring Data or HTTP types.
-- Tenant ID is absent from public self-service commands.
-- Cross-module contracts expose only required fields.
-- Existing tests continue to pass.
+- Application ports do not depend on infrastructure.
+- Existing shared contracts are reused.
+- No JWT, HTTP, JPA, or Spring Security types appear in domain code.
+- Permission names are confirmed and centralized.
+
+## Codex Task Name
+
+```text
+ORG-03 Application Ports and Contracts
+```
 
 ---
 
-# Phase 4: Application Use Cases
+# Phase 4: Profile Application Use Cases
 
 ## Goal
 
-Implement Organization profile and settings orchestration.
+Implement profile read and update orchestration.
 
 ## Scope
 
@@ -405,50 +559,45 @@ Implement:
 ```text
 GetOrganizationProfileService
 UpdateOrganizationProfileService
-GetOrganizationSettingsService
-UpdateOrganizationSettingsService
+UpdateOrganizationCommand
+OrganizationProfileResponse
+Application mapper
 ```
 
-Optionally implement provisioning only if the integration point is already clear:
+Names may follow existing project conventions.
 
-```text
-ProvisionOrganizationService
-```
-
-## Required Flow
-
-For reads:
+## Get Profile Flow
 
 ```text
 Resolve actor
-Authorize
-Load by actor tenant
-Map response
+Authorize organization:read
+Load by actor tenant ID
+Map to response
+Return
 ```
 
-For updates:
+## Update Profile Flow
 
 ```text
 Resolve actor
-Authorize
-Load by actor tenant
-Create value objects
-Invoke aggregate behavior
+Authorize organization:update
+Load by actor tenant ID
+Create validated value objects
+Invoke aggregate updateProfile
 Save aggregate
-Publish events
-Map response
+Publish pulled events
+Map to response
+Return
 ```
 
-## Permissions
+## Rules
 
-Use:
-
-```text
-organization:read
-organization:update
-organization:settings:read
-organization:settings:update
-```
+- Tenant ID must come only from the actor.
+- Commands must not include tenant ID.
+- Repository lookup must be tenant-scoped.
+- Events must not be published when save fails.
+- Missing Organization must raise `OrganizationNotFoundException`.
+- Application service must own the transaction boundary once Spring integration is added.
 
 ## Tests
 
@@ -458,42 +607,194 @@ Mock:
 - Current actor provider
 - Authorization service
 - Time provider
-- Domain event publisher
+- Event publisher
 
 Verify:
 
-- Correct permission checked
-- Tenant comes from actor
-- Repository uses tenant-scoped lookup
-- Aggregate is saved
-- Events publish only after successful save
-- Missing organization is handled
-- Validation failure prevents persistence
-- Unauthorized operation does not persist
+- Permission check occurs.
+- Actor tenant is used.
+- Correct repository method is called.
+- Aggregate is saved.
+- Events are published after save.
+- Persistence failure prevents event publication.
+- Unauthorized access prevents repository access.
+- Missing Organization is handled.
 
 ## Out of Scope
 
-Do not implement:
-
-- Controllers
+- Settings use cases
+- Controller
 - JPA
-- Flyway
-- SecurityContext access
+- Real Spring transactions
 
 ## Acceptance Criteria
 
-- All four main use cases work through mocked ports.
-- Tenant ID never comes from a command.
-- Transaction annotations, if used, remain in application services.
-- Application tests pass.
+- Profile use cases work with mocked ports.
+- No tenant identifier is accepted from the caller.
+- All application unit tests pass.
+- Domain behavior remains inside the aggregate.
+
+## Codex Task Name
+
+```text
+ORG-04 Profile Application Use Cases
+```
 
 ---
 
-# Phase 5: JPA Persistence Entities
+# Phase 5: Settings Application Use Cases
 
 ## Goal
 
-Implement the persistence representation of the aggregate.
+Implement Organization settings read and update orchestration.
+
+## Scope
+
+Implement:
+
+```text
+GetOrganizationSettingsService
+UpdateOrganizationSettingsService
+UpdateOrganizationSettingsCommand
+OrganizationSettingsResponse
+```
+
+## Read Settings Flow
+
+```text
+Resolve actor
+Authorize organization:settings:read
+Load by tenant
+Map settings
+Return
+```
+
+## Update Settings Flow
+
+```text
+Resolve actor
+Authorize organization:settings:update
+Load by tenant
+Validate settings value objects
+Invoke aggregate updateSettings
+Save
+Publish events
+Return
+```
+
+## Tests
+
+Verify:
+
+- Correct permission
+- Actor-derived tenant
+- Currency validation
+- Timezone validation
+- Locale validation
+- Date format mapping
+- Time format mapping
+- Week-start mapping
+- No-op update behavior
+- Save and event publication ordering
+
+## Acceptance Criteria
+
+- Settings use cases are independently reviewable.
+- Invalid settings fail before persistence.
+- No tenant input exists in commands.
+- Tests pass without Spring.
+
+## Codex Task Name
+
+```text
+ORG-05 Settings Application Use Cases
+```
+
+---
+
+# Phase 6: Flyway Schema
+
+## Goal
+
+Introduce the Organization database schema before implementing JPA mappings.
+
+## Scope
+
+Inspect the existing migration history and create the next migration.
+
+Create:
+
+```text
+organizations
+organization_addresses
+organization_contacts
+organization_settings
+```
+
+## Schema Rules
+
+- Use the existing project UUID representation.
+- `organizations.tenant_id` must be unique.
+- Child tables must reference `organizations.id`.
+- Child tables should use shared primary keys if the approved `@MapsId` design is retained.
+- Use `ON DELETE CASCADE` for aggregate-owned child rows.
+- Add status constraint where supported.
+- Add time-format constraint.
+- Add week-start constraint.
+- Do not duplicate the tenant unique index.
+- Add a status index only if justified by the approved design.
+
+## Validation
+
+Run Flyway against a clean MySQL Testcontainer.
+
+Configure:
+
+```yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+```
+
+JPA validation may be completed in the next phase once entities exist.
+
+## Tests
+
+Create a migration smoke test that verifies:
+
+- Fresh database migration succeeds.
+- Expected tables exist.
+- Expected constraints exist.
+- Duplicate tenant rows are rejected.
+- Invalid foreign keys are rejected where applicable.
+
+## Out of Scope
+
+- JPA entities
+- Repository adapter
+- Controllers
+
+## Acceptance Criteria
+
+- Migration works from an empty database.
+- Existing migrations remain untouched.
+- UUID storage matches the existing schema.
+- One Organization per tenant is enforced by the database.
+
+## Codex Task Name
+
+```text
+ORG-06 Flyway Organization Schema
+```
+
+---
+
+# Phase 7: JPA Persistence Entities
+
+## Goal
+
+Implement the persistence entity graph matching the Flyway schema.
 
 ## Scope
 
@@ -507,196 +808,273 @@ OrganizationSettingsJpaEntity
 OrganizationStatusJpa
 ```
 
-Use:
+## Mapping Rules
 
-- Root `@Version`
-- One-to-one ownership
-- Lazy loading
-- Cascade persistence
-- Orphan removal
-- Shared child primary keys with `@MapsId` where approved
-- Relationship helper methods
+Root:
 
-## Design Rules
+```java
+@Entity
+@Table(name = "organizations")
+```
 
-JPA entities must:
+Required root fields:
 
-- Remain under infrastructure
-- Contain no domain behavior
-- Contain no authorization logic
-- Never be returned from controllers
-- Never be imported by application services
+```text
+id
+tenantId
+legalName
+displayName
+taxRegistrationNumber
+status
+version
+createdAt
+updatedAt
+createdBy
+updatedBy
+```
+
+Owned relationships:
+
+```java
+@OneToOne(
+    mappedBy = "organization",
+    cascade = CascadeType.ALL,
+    orphanRemoval = true,
+    fetch = FetchType.LAZY,
+    optional = false
+)
+```
+
+Child entities should use:
+
+```java
+@MapsId
+```
+
+when aligned with the migration.
+
+## Design Constraints
+
+- Protected no-argument constructors
+- No domain logic
+- No public mutable API unless required by the existing mapping convention
+- Bidirectional helper methods
+- Tenant ID is non-updatable
+- Root carries the optimistic-lock version
+- Child entities do not need separate versions
 
 ## Tests
 
-Add lightweight entity relationship tests where useful.
+Create JPA mapping tests verifying:
 
-Verify:
-
-- Assigning child synchronizes both relationship sides.
-- Tenant ID cannot be updated.
-- Shared child identity is maintained.
+- Context starts with `ddl-auto=validate`.
+- Relationships persist.
+- Shared IDs are correct.
+- Cascades work.
+- Orphan behavior is correct where replacements are supported.
 
 ## Out of Scope
 
-Do not implement:
-
-- Flyway
-- Spring Data repository
+- Domain mapper
 - Repository adapter
-- REST API
+- HTTP
 
 ## Acceptance Criteria
 
-- Entity graph compiles.
-- Relationship ownership is correct.
-- Root version field is configured.
-- Domain remains independent of JPA.
+- Entity mappings exactly match Flyway.
+- Hibernate schema validation passes.
+- Full entity graph can be persisted.
+- No domain package depends on JPA.
+
+## Codex Task Name
+
+```text
+ORG-07 JPA Entity Model
+```
 
 ---
 
-# Phase 6: Flyway Database Migration
+# Phase 8: Persistence Mapper
 
 ## Goal
 
-Create the Organization schema.
+Implement explicit conversion between the domain aggregate and the JPA entity graph.
 
 ## Scope
 
-Create the next Flyway migration for:
+Implement:
 
-```text
-organizations
-organization_addresses
-organization_contacts
-organization_settings
+```java
+Organization toDomain(OrganizationJpaEntity entity);
+
+OrganizationJpaEntity toNewEntity(Organization organization);
+
+void updateEntity(
+        Organization organization,
+        OrganizationJpaEntity entity);
 ```
 
-Use the UUID format already established in OdinSync.
+## Rules
 
-Add:
+`toDomain` must:
 
-- Primary keys
-- Unique tenant constraint
-- Child foreign keys
-- `ON DELETE CASCADE`
-- Status constraint
-- Time-format constraint
-- Week-start constraint
-- Required indexes
+- Use aggregate reconstitution.
+- Preserve ID.
+- Preserve tenant ID.
+- Preserve status.
+- Preserve version.
+- Preserve audit metadata.
+- Reconstruct address, contact, and settings.
+- Generate no events.
 
-## Required Review
+`toNewEntity` must:
 
-Verify:
+- Create the full entity graph.
+- Synchronize both relationship sides.
+- Preserve aggregate identifiers.
+- Use child shared IDs correctly.
 
-- No duplicate tenant index
-- Column names match JPA exactly
-- Enum values match domain and API exactly
-- Timestamp precision matches existing schema
-- Foreign key to tenant is added only if consistent with current architecture
+`updateEntity` must:
+
+- Update editable fields.
+- Update existing children rather than recreate them unnecessarily.
+- Preserve root ID.
+- Preserve tenant ID.
+- Preserve created metadata.
+- Leave JPA version management to Hibernate.
+- Maintain bidirectional relationships.
 
 ## Tests
 
-Start a clean MySQL Testcontainer and run Flyway.
+Create mapper tests for:
 
-Verify:
-
-- Migration applies successfully
-- Tables exist
-- Constraints exist
-- Migration checksum validation succeeds
+- Domain to new JPA entity
+- JPA to domain
+- Round-trip equality
+- Update mapping
+- Immutable field preservation
+- Child entity preservation
+- No domain events after mapping
 
 ## Acceptance Criteria
 
-- Migration works from an empty database.
-- Migration follows the current sequence.
-- Existing migrations are not modified.
-- Hibernate validation can match the new schema once repositories are wired.
+- Mapper contains no business validation beyond safe null handling.
+- Round-trip mapping preserves all aggregate state.
+- Reconstitution publishes no events.
+- Managed update semantics are tested.
+
+## Codex Task Name
+
+```text
+ORG-08 Persistence Mapper
+```
 
 ---
 
-# Phase 7: Persistence Mapper and Repository Adapter
+# Phase 9: Spring Data Repository and Adapter
 
 ## Goal
 
-Connect the domain aggregate to JPA persistence.
+Connect the domain repository port to Spring Data JPA.
 
 ## Scope
 
 Implement:
 
 ```text
-OrganizationPersistenceMapper
 SpringDataOrganizationRepository
 OrganizationRepositoryAdapter
 ```
 
-Required mapper operations:
+## Required Queries
 
-```text
-toDomain
-toNewEntity
-updateEntity
+```java
+@EntityGraph(attributePaths = {
+        "address",
+        "contact",
+        "settings"
+})
+Optional<OrganizationJpaEntity> findByTenantId(UUID tenantId);
 ```
 
-Required repository methods:
-
-```text
-findByTenantId
-findByIdAndTenantId
-existsByTenantId
-save
+```java
+@EntityGraph(attributePaths = {
+        "address",
+        "contact",
+        "settings"
+})
+Optional<OrganizationJpaEntity> findByIdAndTenantId(
+        UUID id,
+        UUID tenantId);
 ```
 
-Use `@EntityGraph` or an explicit fetch-join query.
+```java
+boolean existsByTenantId(UUID tenantId);
+```
 
-## Mapping Rules
+## Save Strategy
 
-Preserve:
+For an existing aggregate:
 
-- Organization ID
-- Tenant ID
-- Child IDs
-- Version
-- Audit metadata
-- Status
-- Address
-- Contact
-- Settings
+1. Load the managed entity by organization ID and tenant ID.
+2. Apply `updateEntity`.
+3. Allow dirty checking.
+4. Return reconstructed domain state.
 
-Do not:
+For a new aggregate:
 
-- Publish events
-- Revalidate authorization
-- Call aggregate creation during reconstitution
-- Replace managed children unnecessarily
-- Update immutable tenant ownership
+1. Use `toNewEntity`.
+2. Persist full graph.
+3. Return reconstructed domain state.
 
-## Tests
+Do not determine newness only from version `0` unless existing project behavior guarantees that approach.
 
-Add:
+## Exception Translation
 
-- Domain-to-JPA mapping test
-- JPA-to-domain mapping test
-- Round-trip test
-- Managed-entity update test
-- Reconstitution event test
+Translate:
+
+- Duplicate tenant constraint
+- Optimistic locking
+- Data integrity violations
+- Generic persistence failures
+
+Do not expose constraint names or SQL messages.
+
+## Integration Tests
+
+Verify:
+
+- Save new aggregate
+- Load by tenant
+- Load complete graph
+- Update existing aggregate
+- Child rows are not duplicated
+- Unique tenant constraint
+- Tenant-scoped lookup
+- Version persistence
+- Audit persistence
+- No lazy-loading failures after repository return
 
 ## Acceptance Criteria
 
-- Complete aggregate can be mapped both directions.
-- Reconstitution generates no domain event.
-- Repository adapter exposes only domain objects.
-- Tenant-facing lookups are tenant-scoped.
-- Unit tests pass.
+- Domain repository port is fully implemented.
+- Tenant-facing queries are tenant-scoped.
+- Repository integration tests use MySQL Testcontainers.
+- No JPA types leak into application code.
+
+## Codex Task Name
+
+```text
+ORG-09 Repository Adapter and Persistence Integration
+```
 
 ---
 
-# Phase 8: REST Request, Response, and Controllers
+# Phase 10: Profile REST API
 
 ## Goal
 
-Expose the documented Organization APIs.
+Expose profile read and update APIs without implementing settings endpoints yet.
 
 ## Scope
 
@@ -705,120 +1083,218 @@ Implement:
 ```http
 GET /api/v1/organizations/me
 PUT /api/v1/organizations/me
+```
+
+Implement:
+
+```text
+OrganizationController
+UpdateOrganizationRequest
+AddressRequest
+ContactRequest
+OrganizationProfileResponse
+Presentation mapper
+```
+
+## Request Rules
+
+The request must not accept:
+
+```text
+tenantId
+organizationId
+createdAt
+createdBy
+updatedAt
+updatedBy
+version
+status
+```
+
+unless a version field is deliberately introduced later for API-level concurrency.
+
+## Validation
+
+Use Jakarta Bean Validation for structural rules:
+
+- Required fields
+- Maximum lengths
+- Nested validation
+- Basic email formatting
+
+Domain value objects remain the final source of business validation.
+
+## Controller Tests
+
+Verify:
+
+- 200 for successful GET
+- 200 for successful PUT
+- 400 for invalid input
+- Response field names
+- Enum serialization where applicable
+- No persistence entity exposure
+- No tenant field accepted from client
+- Service interaction
+
+Security may be mocked or temporarily configured according to project test conventions; complete security verification occurs in Phase 12.
+
+## Acceptance Criteria
+
+- Profile endpoints work through application services.
+- Controller contains no business logic.
+- Request and application command types remain separated where project conventions require it.
+- API tests pass.
+
+## Codex Task Name
+
+```text
+ORG-10 Profile REST API
+```
+
+---
+
+# Phase 11: Settings REST API
+
+## Goal
+
+Expose Organization settings read and update APIs.
+
+## Scope
+
+Implement:
+
+```http
 GET /api/v1/organizations/me/settings
 PUT /api/v1/organizations/me/settings
 ```
 
 Implement:
 
-- Request records
-- Response records
-- Presentation mapper
-- Controller
-- Jakarta Bean Validation
-
-## Rules
-
-- No tenant ID in self-service request models.
-- No JPA entity exposure.
-- No domain behavior inside controllers.
-- Controller delegates directly to use cases.
-- Enum serialization remains consistent.
-
-## Tests
-
-Use `@WebMvcTest` and MockMvc.
-
-Verify:
-
-- Successful responses
-- Request-body mapping
-- Required fields
-- Maximum lengths
-- Invalid enum values
-- JSON field names
-- Content type
-
-Security behavior may be completed in Phase 9.
-
-## Acceptance Criteria
-
-- All routes exist.
-- Request and response contracts match documentation.
-- Controllers contain no persistence logic.
-- Controller contract tests pass.
-
----
-
-# Phase 9: Security Integration and Permission Enforcement
-
-## Goal
-
-Connect Organization use cases to OdinSync authentication and authorization.
-
-## Scope
-
-Integrate the existing:
-
-- OAuth2 resource server
-- Authenticated principal
-- SecurityContext
-- Current actor abstraction
-- Permission convention
-
-Implement or adapt:
-
 ```text
-SpringSecurityCurrentActorProvider
-DefaultOrganizationAuthorizationService
+UpdateOrganizationSettingsRequest
+OrganizationSettingsResponse
+Controller methods
+Presentation mapping
 ```
 
-Add method-level security where consistent with project conventions.
-
-## Permission Matrix
-
-| Endpoint | Permission |
-|---|---|
-| GET profile | `organization:read` |
-| PUT profile | `organization:update` |
-| GET settings | `organization:settings:read` |
-| PUT settings | `organization:settings:update` |
-
-## Rules
-
-- Organization code does not parse JWT claims directly.
-- Application authorization uses permissions, not hard-coded roles.
-- Actor tenant ID is trusted only after security validation.
-- Future `authorization_version` enforcement remains in Identity/security infrastructure.
-
-## Tests
+## Validation
 
 Verify:
 
-- No token returns 401.
-- Wrong permission returns 403.
-- Correct permission succeeds.
-- Similar but incorrect permission fails.
-- Actor tenant comes from the authenticated principal.
+- Currency code shape
+- Timezone required
+- Locale required
+- Date format required
+- Time format required
+- Week start required
+
+Domain factories must perform semantic validation.
+
+## Controller Tests
+
+Test:
+
+- Valid settings read
+- Valid settings update
+- Invalid currency
+- Invalid timezone
+- Invalid locale
+- Invalid date format
+- Invalid time format
+- Invalid week start
+- Missing required field
+- Stable JSON serialization
 
 ## Acceptance Criteria
 
-- All endpoints are protected.
-- Permission checks are explicit.
-- Authentication failures are handled by platform security.
-- Security tests pass.
+- Settings endpoints are complete.
+- Validation failures return the current platform validation contract.
+- No tenant scope is accepted from the client.
+- All controller tests pass.
+
+## Codex Task Name
+
+```text
+ORG-11 Settings REST API
+```
 
 ---
 
-# Phase 10: Error Handling and Problem Details
+# Phase 12: Security Integration
 
 ## Goal
 
-Expose stable, safe Organization error responses.
+Integrate Organization endpoints with OdinSync's existing `oauth2ResourceServer` authentication flow and permission model.
 
 ## Scope
 
-Implement or register mappings for:
+Implement or connect:
+
+```text
+SpringSecurityCurrentActorAdapter
+Organization authorization implementation
+Controller method security
+```
+
+Reuse the existing authenticated principal.
+
+Do not parse raw JWT claims inside Organization services or controllers.
+
+## Permissions
+
+```text
+organization:read
+organization:update
+organization:settings:read
+organization:settings:update
+```
+
+Confirm exact delimiter and naming convention used by the existing Identity module before implementation.
+
+## Defense in Depth
+
+Enforce permissions at:
+
+- Controller or method-security boundary
+- Application authorization service
+
+## Security Tests
+
+For every endpoint, verify:
+
+- Missing token returns 401.
+- Invalid token returns 401 where covered by integration configuration.
+- Valid authentication without permission returns 403.
+- Unrelated permission returns 403.
+- Required permission succeeds.
+- Application service is not invoked after authentication or authorization rejection.
+- Actor tenant and user IDs are derived from the trusted principal.
+
+## Acceptance Criteria
+
+- Organization code does not parse JWTs.
+- Current actor is resolved through a stable application port.
+- Permission matrix is fully tested.
+- All four endpoints are protected.
+
+## Codex Task Name
+
+```text
+ORG-12 Security and Permission Integration
+```
+
+---
+
+# Phase 13: Error Handling and Problem Details
+
+## Goal
+
+Complete stable Organization error mapping using the platform-wide error model.
+
+## Scope
+
+Implement or register:
 
 ```text
 OrganizationNotFoundException
@@ -833,256 +1309,238 @@ OrganizationStateConflictException
 OrganizationPersistenceException
 ```
 
-Use the existing platform-wide Problem Details implementation.
+## Error Catalogue
 
-## Error Codes
-
-Use:
-
-```text
-ORG_001 through ORG_010
-```
-
-as defined in the documentation.
+| Code | HTTP Status |
+|---|---:|
+| `ORG_001` | 404 |
+| `ORG_002` | 400 |
+| `ORG_003` | 400 |
+| `ORG_004` | 400 |
+| `ORG_005` | 400 |
+| `ORG_006` | 403 |
+| `ORG_007` | 409 |
+| `ORG_008` | 409 |
+| `ORG_009` | 409 |
+| `ORG_010` | 500 |
 
 ## Tests
 
 Verify:
 
-- Correct HTTP status
+- Correct status
 - Correct error code
-- Correct title
+- Correct content type
 - Request path
-- Trace ID
-- Validation error list
-- No SQL details
-- No stack traces
-- No internal class names
+- Trace or correlation ID where supported
+- Validation field errors
+- No stack trace
+- No SQL
+- No constraint name
+- No Java implementation details
 
 ## Acceptance Criteria
 
-- Error responses are stable and safe.
-- Authentication errors remain platform-owned.
-- Infrastructure exceptions are translated.
-- Problem Details tests pass.
+- All documented Organization failures map predictably.
+- Platform-wide handling is reused.
+- Security errors remain owned by Identity or shared security infrastructure.
+- Error-contract tests pass.
+
+## Codex Task Name
+
+```text
+ORG-13 Error Contract and Exception Mapping
+```
 
 ---
 
-# Phase 11: Repository and Migration Integration Tests
+# Phase 14: Tenant-Isolation Hardening
 
 ## Goal
 
-Verify JPA, Flyway, and MySQL behavior together.
+Prove and harden tenant isolation across the application, persistence, and HTTP layers.
 
 ## Scope
 
-Use:
-
-- Testcontainers
-- Production-compatible MySQL version
-- Flyway
-- Real JPA mappings
-- Real repository adapter
+Add dedicated security tests and correct any unsafe access paths.
 
 ## Required Tests
 
-- Save full aggregate
-- Load by tenant
-- Load complete entity graph
-- Update root fields
-- Update child fields
-- Preserve child identities
-- Preserve tenant ID
-- Persist audit metadata
-- Unique organization per tenant
-- Foreign-key behavior
-- Cascade behavior
-- Hibernate schema validation
-- No domain event on reconstitution
-- No N+1 loading behavior
-
-## Acceptance Criteria
-
-- All persistence integration tests pass.
-- H2 is not used as the primary compatibility database.
-- The schema and JPA mappings agree.
-- No duplicate child rows are created.
-
----
-
-# Phase 12: Complete Controller and Security Tests
-
-## Goal
-
-Verify the protected HTTP contract end to end through the MVC layer.
-
-## Scope
-
-Build a complete matrix for all four endpoints.
-
-For each endpoint test:
-
-- Unauthenticated request
-- Missing permission
-- Wrong permission
-- Correct permission
-- Invalid request
-- Organization missing
-- Successful request
-- Safe error response
-
-Use the actual OdinSync principal structure where practical.
-
-## Acceptance Criteria
-
-- All permission combinations behave correctly.
-- Application services are not invoked for rejected requests.
-- Security and controller contracts are fully covered.
-- MockMvc tests pass.
-
----
-
-# Phase 13: Tenant-Isolation Hardening
-
-## Goal
-
-Prove that Organization data cannot cross tenant boundaries.
-
-## Required Scenarios
-
-Create:
-
-```text
-Tenant A → Organization A
-Tenant B → Organization B
-```
+Create Tenant A and Tenant B.
 
 Verify:
 
-- Tenant A reads only Organization A.
-- Tenant B reads only Organization B.
+- Tenant A reads Organization A.
+- Tenant B reads Organization B.
+- Tenant A cannot retrieve Organization B by ID.
 - Tenant A cannot update Organization B.
-- ID-plus-tenant lookups return empty across tenants.
-- Tenant ID supplied through malicious JSON is rejected or ignored.
-- Unsupported tenant headers do not change scope.
-- A second organization for the same tenant is rejected.
-- Cross-tenant resource existence is not disclosed.
+- Actor tenant is always passed to the repository.
+- Public commands and requests contain no tenant ID.
+- Malicious unknown tenant fields are rejected or ignored according to Jackson policy.
+- A second Organization for the same tenant is rejected.
+- Cross-tenant IDs do not reveal resource existence.
+- No tenant-facing service calls unscoped `findById`.
 
-## Layers
+## Static Review
 
-Test at:
+Search the module for:
 
-- Application service level
-- Repository level
-- HTTP level
-- Full integration level
+```text
+findById(
+tenantId request fields
+X-Tenant-ID
+raw tenant headers
+```
+
+Document every legitimate exception.
 
 ## Acceptance Criteria
 
-- Mandatory cross-tenant tests pass.
-- No tenant-facing workflow uses unrestricted `findById`.
-- Tenant scope always originates from the authenticated actor.
+- Tenant-isolation tests exist at multiple layers.
+- No cross-tenant read or write succeeds.
+- Tenant scope is derived exclusively from the authenticated actor for self-service endpoints.
+- Database uniqueness remains the final one-Organization-per-tenant safeguard.
+
+## Codex Task Name
+
+```text
+ORG-14 Tenant-Isolation Hardening
+```
 
 ---
 
-# Phase 14: Optimistic Locking and Concurrency
+# Phase 15: Optimistic Locking and Concurrency
 
 ## Goal
 
-Prevent silent lost updates.
+Verify lost-update protection and stable conflict handling.
 
 ## Scope
 
-Verify root-level optimistic locking with:
+Complete:
 
 ```java
 @Version
 ```
 
-## Required Scenario
-
-1. Load the same aggregate in two independent transactions.
-2. Update transaction A.
-3. Commit transaction A.
-4. Update transaction B.
-5. Commit transaction B.
-6. Verify conflict.
-7. Translate conflict to Organization exception.
-8. Return HTTP 409.
-
-## Additional Scenario
-
-Verify that profile and settings updates conflict when both use the same stale root version.
-
-Document that this is expected because the aggregate uses one consistency boundary.
-
-## Acceptance Criteria
-
-- No committed state is silently overwritten.
-- Persistence exception is translated.
-- API returns 409.
-- Concurrency tests pass reliably.
-
----
-
-# Phase 15: Domain Event Publication
-
-## Goal
-
-Publish Organization domain events safely after persistence.
-
-## Scope
-
-Wire the existing domain-event publisher.
-
-Support:
-
-```text
-OrganizationCreated
-OrganizationProfileUpdated
-OrganizationSettingsUpdated
-OrganizationStatusChanged
-```
-
-Use after-commit listeners where appropriate.
+behavior and exception translation.
 
 ## Required Tests
 
-- Event generated for real change
-- No event for no-op update
-- Events published after successful persistence
-- Events not published if persistence fails
-- Events cleared after publication
-- Listener does not run after rollback
-- Event metadata is correct
+Using two independent persistence contexts:
 
-## Deferred
+1. Load the same Organization twice.
+2. Update the first instance.
+3. Commit or flush.
+4. Update the second instance.
+5. Confirm stale update rejection.
 
-Do not implement:
+Verify:
 
-- Kafka
-- Transactional outbox
-- Dead-letter queues
-- External event schemas
+- Root version increments.
+- No data is silently overwritten.
+- Adapter translates the persistence exception.
+- API returns `409 Conflict`.
+- Error code is `ORG_007`.
+- Conflict does not trigger automatic unbounded retries.
 
-Record these as future enhancement tasks.
+## Additional Scenario
+
+Verify that simultaneous profile and settings updates conflict when using one aggregate root version.
+
+Document that this is intentional.
 
 ## Acceptance Criteria
 
-- Event behavior is deterministic.
-- Failed writes do not publish events.
-- Successful updates publish expected events.
-- Event tests pass.
+- Optimistic locking works against MySQL.
+- Conflict translation is stable.
+- No server-side blind retry is added.
+- Concurrency tests are deterministic.
+
+## Codex Task Name
+
+```text
+ORG-15 Optimistic Locking and Conflict Handling
+```
 
 ---
 
-# Phase 16: Observability and Operational Hooks
+# Phase 16: Domain Event Publication
 
 ## Goal
 
-Make Organization operations observable in production.
+Publish aggregate events only after successful persistence using the existing OdinSync event mechanism.
 
 ## Scope
+
+Implement or connect:
+
+```text
+DomainEventPublisher
+SpringDomainEventPublisher
+After-commit listeners where required
+```
+
+## Required Behavior
+
+- Save aggregate before publishing.
+- Publish all pulled events exactly once per successful use-case invocation.
+- Do not publish after persistence failure.
+- Do not publish after transaction rollback.
+- Clear pulled events.
+- Do not add Kafka.
+- Do not implement an outbox in this phase.
+
+## Tests
+
+Verify:
+
+- OrganizationCreated publication
+- ProfileUpdated publication
+- SettingsUpdated publication
+- StatusChanged publication
+- No event on no-op updates
+- No publication when save fails
+- After-commit listener does not run on rollback
+- Event payload contains event ID, tenant ID, organization ID, actor ID, and timestamp
+
+## Documentation
+
+Add an explicit follow-up note for transactional outbox implementation when durable cross-service event delivery is introduced.
+
+## Acceptance Criteria
+
+- Publication semantics are deterministic.
+- No external broker call occurs inside the Organization database transaction.
+- Event tests pass.
+- Outbox remains deferred.
+
+## Codex Task Name
+
+```text
+ORG-16 Domain Event Publication
+```
+
+---
+
+# Phase 17: Observability
+
+## Goal
+
+Add production diagnostics without introducing high-cardinality or sensitive telemetry.
+
+## Scope
+
+Integrate with existing:
+
+- Logging
+- Micrometer
+- OpenTelemetry
+- Actuator
+
+Only add custom instrumentation where platform conventions already support it.
+
+## Logging
 
 Add structured logs for:
 
@@ -1096,9 +1554,31 @@ organization.persistence.failure
 organization.access.denied
 ```
 
-Add Micrometer metrics only according to existing project conventions.
+Include where supported:
 
-Recommended metrics:
+```text
+traceId
+spanId
+tenantId
+organizationId
+actorId
+operation
+result
+errorCode
+```
+
+Do not log:
+
+- Tokens
+- Authorization headers
+- Full tax identifiers
+- Full addresses
+- Full phone numbers
+- Credentials
+
+## Metrics
+
+Candidate metrics:
 
 ```text
 odinsync.organization.profile.read
@@ -1109,109 +1589,158 @@ odinsync.organization.update.conflict
 odinsync.organization.persistence.failure
 ```
 
-## Rules
+Allowed tags:
 
-Do not log:
+```text
+operation
+result
+error_code
+```
 
-- JWTs
-- Authorization headers
-- Full addresses
-- Full phone numbers
-- Full tax identifiers
+Forbidden high-cardinality tags:
 
-Do not use as metric tags:
+```text
+tenant_id
+organization_id
+user_id
+email
+```
 
-- Tenant ID
-- Organization ID
-- User ID
+## Tracing
+
+Ensure Organization operations participate in existing HTTP and database traces.
+
+Do not place tracing APIs in the domain layer.
 
 ## Tests
 
-Verify where practical:
+Where feasible, verify:
 
-- Success counter increments
-- Failure counter increments
-- Conflict counter increments
-- Logs include operation context
-- Sensitive values are absent
-- Trace context is preserved
+- Counter increment
+- Failure metric
+- Conflict metric
+- Sensitive fields absent from log output
+- Trace context retained
+- Health endpoint remains functional
 
 ## Acceptance Criteria
 
-- Key operations are observable.
-- Metrics avoid high-cardinality tags.
-- Sensitive data is not exposed.
-- Existing health endpoints remain functional.
+- Telemetry follows existing platform conventions.
+- No sensitive information is logged.
+- No high-cardinality metric dimensions are added.
+- Observability tests pass where practical.
+
+## Codex Task Name
+
+```text
+ORG-17 Organization Observability
+```
 
 ---
 
-# Phase 17: Architecture Tests and End-to-End Workflows
+# Phase 18: Architecture and End-to-End Verification
 
 ## Goal
 
-Verify architectural boundaries and complete workflows.
+Verify complete workflows and enforce module boundaries.
 
-## ArchUnit Rules
+## Scope
 
-Enforce:
+Add ArchUnit rules where supported.
+
+## Architecture Rules
 
 - Domain does not depend on Spring.
 - Domain does not depend on JPA.
 - Application does not depend on presentation.
 - Application does not depend directly on infrastructure implementations.
 - Controllers do not access Spring Data repositories.
-- Other modules do not access Organization JPA entities.
-- Business logic does not reside in controllers.
+- JPA entities remain in infrastructure.
+- Other bounded contexts do not access Organization persistence classes.
+- Business rules do not exist in controllers or JPA entities.
 
 ## End-to-End Scenarios
 
-Test:
+### Read Profile
 
-- Read profile
-- Update profile
-- Read settings
-- Update settings
-- Unauthorized access
-- Forbidden access
-- Invalid input
-- Missing organization
-- Cross-tenant access
-- Concurrent update conflict
-- Event publication
-- Flyway startup from clean database
+```text
+Valid token
+Required permission
+Organization exists
+GET profile
+200 response
+```
+
+### Update Profile
+
+```text
+Valid token
+Update permission
+Valid request
+Aggregate updated
+Database updated
+Audit updated
+Event published
+200 response
+```
+
+### Read and Update Settings
+
+Verify complete protected workflows.
+
+### Unauthorized
+
+Verify 401 and 403 behavior.
+
+### Cross-Tenant
+
+Verify Tenant A cannot read or update Tenant B.
+
+### Concurrent Update
+
+Verify one update succeeds and the stale update returns 409.
+
+### Validation
+
+Verify invalid inputs produce the platform Problem Details response.
 
 ## Acceptance Criteria
 
+- Complete workflows pass through actual application wiring.
 - Architecture rules pass.
-- End-to-end workflows pass.
-- Full Maven verification succeeds.
+- No module-boundary violations remain.
+- MySQL Testcontainers are used for database-dependent workflows.
+
+## Codex Task Name
+
+```text
+ORG-18 Architecture and End-to-End Verification
+```
 
 ---
 
-# Phase 18: Final Hardening and Documentation Synchronization
+# Phase 19: Documentation Reconciliation and Release Readiness
 
 ## Goal
 
-Prepare the module for merge and future extension.
+Align completed implementation with the approved documentation and prepare the module for merge.
 
-## Tasks
+## Scope
 
 Review:
 
-- Package boundaries
-- Naming consistency
-- Enum consistency
-- Permission consistency
-- Error-code consistency
-- Flyway consistency
+- Domain documentation
 - API documentation
-- OpenAPI examples
-- Logging safety
-- Test reliability
-- Unused code
-- Duplicate abstractions
-- TODO comments
-- Documentation deviations
+- Permission catalogue
+- Error-code catalogue
+- Event catalogue
+- Flyway schema documentation
+- Package structure
+- Test strategy
+- Operational notes
+- OpenAPI specification
+
+## Required Final Validation
 
 Run:
 
@@ -1219,118 +1748,288 @@ Run:
 ./mvnw clean verify
 ```
 
-Also run configured checks such as:
+Also run configured quality checks:
 
 ```bash
-./mvnw spotless:check
 ./mvnw checkstyle:check
+./mvnw spotless:check
 ```
 
-## Deliverables
+Use only commands actually configured in the repository.
 
-Provide:
+## Final Report
+
+Produce:
 
 - Files created
 - Files modified
-- Test results
-- Migration details
-- Architectural decisions
-- Documentation deviations
-- Deferred work
-- Recommended next module integration point
+- Tests added
+- Build results
+- Architecture decisions
+- Deviations from documentation
+- Deferred capabilities
+- Known limitations
+- Follow-up tasks
+
+## Deferred Follow-Up Items
+
+Do not implement these merely to close the module:
+
+- Transactional outbox
+- Kafka integration
+- Redis caching
+- Authorization-version validation
+- Organization branding
+- Branches
+- Multi-office support
+- Hard deletion
+- Audit-history table
+- Platform administrator APIs
+- Dedicated tenant databases
 
 ## Acceptance Criteria
 
 - Full build passes.
-- All mandatory tests pass.
-- No unresolved compilation warnings from new code.
-- Documentation matches implementation.
-- Deferred work is explicitly tracked.
+- Documentation matches code.
+- OpenAPI reflects actual endpoints.
+- No unfinished placeholder code remains.
+- Deferred items are explicitly tracked.
+- Module is ready for code review and merge.
+
+## Codex Task Name
+
+```text
+ORG-19 Documentation Reconciliation and Release Readiness
+```
 
 ---
 
-# Recommended Codex Task Sequence
+# Recommended Execution Groups
 
-Create one Codex task for each phase.
+The phases should normally be executed one Codex task at a time.
 
-Recommended first tasks:
+For practical implementation, the following review checkpoints are recommended.
+
+## Checkpoint 1: Domain Foundation
+
+Complete:
 
 ```text
-Task 0: Analyze existing OdinSync conventions
-Task 1: Implement Organization value objects
-Task 2: Implement Organization aggregate and domain events
-Task 3: Define Organization application contracts
-Task 4: Implement Organization application services
-Task 5: Implement Organization JPA entities
-Task 6: Add Organization Flyway schema
-Task 7: Implement persistence mapper and repository adapter
-Task 8: Implement Organization REST APIs
-Task 9: Integrate Organization security
-Task 10: Implement Organization error handling
-Task 11: Add persistence integration tests
-Task 12: Add controller and security tests
-Task 13: Add tenant-isolation tests
-Task 14: Add optimistic-locking tests
-Task 15: Add domain-event publication
-Task 16: Add observability
-Task 17: Add architecture and end-to-end tests
-Task 18: Final hardening and documentation sync
+ORG-00
+ORG-01
+ORG-02
 ```
+
+Review:
+
+- Domain terminology
+- Value-object validation
+- Aggregate invariants
+- Event semantics
+
+Do not proceed until the aggregate design is accepted.
+
+---
+
+## Checkpoint 2: Application Layer
+
+Complete:
+
+```text
+ORG-03
+ORG-04
+ORG-05
+```
+
+Review:
+
+- Port boundaries
+- Tenant propagation
+- Permission design
+- Use-case orchestration
+- Transaction ownership
+
+---
+
+## Checkpoint 3: Persistence
+
+Complete:
+
+```text
+ORG-06
+ORG-07
+ORG-08
+ORG-09
+```
+
+Review:
+
+- Schema
+- UUID representation
+- JPA mapping
+- Mapper correctness
+- Tenant-scoped queries
+- Integration-test reliability
+
+---
+
+## Checkpoint 4: API and Security
+
+Complete:
+
+```text
+ORG-10
+ORG-11
+ORG-12
+ORG-13
+ORG-14
+```
+
+Review:
+
+- HTTP contracts
+- Authentication
+- Permissions
+- Problem Details
+- Tenant-isolation guarantees
+
+---
+
+## Checkpoint 5: Production Readiness
+
+Complete:
+
+```text
+ORG-15
+ORG-16
+ORG-17
+ORG-18
+ORG-19
+```
+
+Review:
+
+- Concurrency
+- Events
+- Observability
+- Architecture rules
+- End-to-end workflows
+- Documentation accuracy
 
 ---
 
 # Phase Dependency Map
 
 ```text
-Phase 0
+ORG-00
    │
    ▼
-Phase 1
+ORG-01
    │
    ▼
-Phase 2
+ORG-02
    │
    ▼
-Phase 3
-   │
-   ▼
-Phase 4
-   │
-   ├───────────────┐
-   ▼               ▼
-Phase 5         Phase 8
-   │               │
-   ▼               │
-Phase 6            │
-   │               │
-   ▼               │
-Phase 7 ◄───────────┘
-   │
-   ▼
-Phase 9
-   │
-   ▼
-Phase 10
-   │
-   ├───────────────┬───────────────┐
-   ▼               ▼               ▼
-Phase 11        Phase 12        Phase 15
-   │               │               │
-   └───────┬───────┘               │
-           ▼                       │
-        Phase 13                   │
-           │                       │
-           ▼                       │
-        Phase 14                   │
-           └───────────┬───────────┘
-                       ▼
-                    Phase 16
-                       │
-                       ▼
-                    Phase 17
-                       │
-                       ▼
-                    Phase 18
+ORG-03
+   ├──────────────┐
+   ▼              ▼
+ORG-04          ORG-05
+   └──────┬───────┘
+          ▼
+        ORG-06
+          │
+          ▼
+        ORG-07
+          │
+          ▼
+        ORG-08
+          │
+          ▼
+        ORG-09
+          ├──────────────┐
+          ▼              ▼
+        ORG-10          ORG-11
+          └──────┬───────┘
+                 ▼
+               ORG-12
+                 │
+                 ▼
+               ORG-13
+                 │
+                 ▼
+               ORG-14
+                 │
+                 ▼
+               ORG-15
+                 │
+                 ▼
+               ORG-16
+                 │
+                 ▼
+               ORG-17
+                 │
+                 ▼
+               ORG-18
+                 │
+                 ▼
+               ORG-19
 ```
 
 ---
+
+# Rules for Every Codex Task
+
+Each task prompt should instruct Codex to:
+
+1. Read the current repository before changing code.
+2. Review the prior phase implementation.
+3. Implement only the requested phase.
+4. Avoid future-phase work.
+5. Reuse existing abstractions.
+6. Add tests for every new behavior.
+7. Run the relevant build commands.
+8. Report all changed files.
+9. Report test results honestly.
+10. Document blockers without bypassing architecture rules.
+
+Codex must not:
+
+- Rewrite unrelated modules.
+- Rename existing shared contracts without need.
+- Modify applied Flyway migrations.
+- Introduce Kafka, Redis, or an outbox early.
+- Add tenant identifiers to public self-service requests.
+- Parse JWTs inside Organization code.
+- Expose JPA entities outside infrastructure.
+- Disable failing tests.
+- weaken validation merely to make tests pass.
+- Use `ddl-auto=update`.
+- Claim success without executing tests.
+
+---
+
+# Initial Implementation Recommendation
+
+Start with:
+
+```text
+ORG-00 Repository Discovery and Baseline
+```
+
+Do not begin domain implementation until ORG-00 confirms:
+
+- Existing shared ID types
+- Current authentication principal
+- Permission naming
+- Error handling
+- UUID storage
+- Flyway sequence
+- Testing conventions
+
+After ORG-00 is reviewed, proceed to:
+
+```text
+ORG-01 Domain Primitives and Value Objects
+```
+
+This sequence minimizes rework and prevents the Organization module from duplicating infrastructure already present in OdinSync.
