@@ -162,7 +162,7 @@ class RefreshTokenServiceTest {
 	}
 
 	private RefreshTokenService refreshTokenService() {
-		return new RefreshTokenService(
+		return new DefaultRefreshTokenService(
 				tokenGenerator,
 				tokenHasher,
 				refreshTokenRepository,
