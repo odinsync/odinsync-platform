@@ -4,7 +4,7 @@ import java.util.Collection;
 
 import com.odinsync.organization.domain.event.OrganizationDomainEvent;
 
-public interface DomainEventPublisher {
+public interface OrganizationDomainEventPublisher {
 
 	void publishAll(Collection<? extends OrganizationDomainEvent> events);
 }

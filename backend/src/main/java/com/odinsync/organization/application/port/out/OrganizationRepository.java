@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import com.odinsync.organization.domain.model.Organization;
 
-public interface OrganizationRepositoryPort {
+public interface OrganizationRepository {
 
 	Optional<Organization> findByTenantId(UUID tenantId);
 
@@ -13,5 +13,5 @@ public interface OrganizationRepositoryPort {
 
 	boolean existsByTenantId(UUID tenantId);
 
-	Organization save(Organization organization);
+	void save(Organization organization);
 }
