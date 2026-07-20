@@ -5,15 +5,16 @@
 | Task | Status | Notes |
 | --- | --- | --- |
 | ORG-00 Repository Discovery and Implementation Baseline | Complete | Baseline recorded in `docs/modules/organization/implementation-baseline.md`. |
-| ORG-01 Domain Primitives and Value Objects | Next | Implement pure Organization domain value objects only. No Spring, JPA, API, security, migrations, or persistence. |
-| ORG-02 Organization Aggregate and Domain Events | Pending | Domain event recording may be designed here, but no publisher/outbox infrastructure yet. |
-| ORG-03 Application Ports and Contracts | Pending | Implement application ports including current actor, authorization, repository, time, and event contracts as needed. |
+| ORG-01 Domain Primitives and Value Objects | Complete | Pure Organization domain value objects and enums are implemented without Spring, JPA, API, security, migrations, or persistence. |
+| ORG-02 Organization Aggregate and Domain Events | Complete | Organization aggregate and local domain event recording are implemented without publisher/outbox infrastructure. |
+| ORG-03 Application Ports and Contracts | Complete | Application contracts for current actor, authorization, repository, time, and event publication are defined without adapters. |
+| ORG-04 Profile Application Use Cases | Next | Implement get/update Organization profile use cases using ORG-03 contracts. |
 
-## Deferred Until ORG-03
+## Deferred Beyond ORG-03
 
 | Item | Decision | Reason |
 | --- | --- | --- |
-| CurrentActorProvider | Wait until ORG-03 | ORG-01 must remain focused on framework-free domain primitives. Current actor resolution depends on application/security boundaries, not domain value objects. |
+| CurrentActorProvider adapter | Wait until ORG-12 | ORG-03 defines the application port only; Spring Security JWT integration belongs to the security integration phase. |
 | Organization table ownership decision | Wait until ORG-06/ORG-07 | Ownership affects Flyway migrations, JPA mapping, existing Identity registration persistence, and any backfill/migration strategy. |
 | Permission-based authorization | Wait until security/API phases | Current access tokens contain roles only; permission authorities require a dedicated security/API phase before Organization endpoints can depend on them. |
 | Testcontainers | Wait until persistence testing phase | ORG-01 does not need database integration tests; PostgreSQL-backed testing should be introduced when persistence adapters and migrations are implemented. |
