@@ -18,7 +18,7 @@ class OrganizationCommandContractTest {
 		CreateOrganizationCommand createCommand =
 				new CreateOrganizationCommand(name(), taxRegistrationNumber(), address(), contact(), settings());
 		UpdateOrganizationProfileCommand profileCommand =
-				new UpdateOrganizationProfileCommand(name(), taxRegistrationNumber(), address(), contact());
+				new UpdateOrganizationProfileCommand(ORGANIZATION_ID, name(), taxRegistrationNumber(), address(), contact());
 		UpdateOrganizationSettingsCommand settingsCommand = new UpdateOrganizationSettingsCommand(settings());
 
 		assertThat(createCommand.name()).isEqualTo(name());
@@ -42,7 +42,9 @@ class OrganizationCommandContractTest {
 				contact(),
 				settings()))
 				.isInstanceOf(NullPointerException.class);
-		assertThatThrownBy(() -> new UpdateOrganizationProfileCommand(name(), null, address(), contact()))
+		assertThatThrownBy(() -> new UpdateOrganizationProfileCommand(null, name(), taxRegistrationNumber(), address(), contact()))
+				.isInstanceOf(NullPointerException.class);
+		assertThatThrownBy(() -> new UpdateOrganizationProfileCommand(ORGANIZATION_ID, name(), null, address(), contact()))
 				.isInstanceOf(NullPointerException.class);
 		assertThatThrownBy(() -> new UpdateOrganizationSettingsCommand(null))
 				.isInstanceOf(NullPointerException.class);
