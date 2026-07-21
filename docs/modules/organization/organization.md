@@ -22,6 +22,11 @@ The Organization module does **not** manage authentication or user credentials.
 
 Authentication belongs to the Identity module.
 
+The Organization module is the source of truth for Organization profile
+persistence. Identity may initiate organization provisioning during registration,
+but it must call the Organization application input port rather than persisting
+Organization data directly.
+
 ---
 
 # Purpose
@@ -70,6 +75,13 @@ The Organization module owns:
 - Organization Status
 - Business Preferences
 - Branding
+
+Current persistence ownership:
+
+- The Organization module owns the Organization aggregate.
+- The Organization module owns the `organizations` table mapping.
+- The Organization module owns Organization repository adapters and persistence mappers.
+- Identity may provision an Organization only through the Organization application input port.
 
 Future ownership may include:
 
@@ -130,6 +142,11 @@ Relationship:
 Future versions may support multiple organizations per tenant.
 
 The design should avoid preventing this evolution.
+
+Registration-time provisioning is initiated by Identity because registration
+also creates credentials and the owner account. Organization creation itself is
+executed by the Organization module through its provisioning use case, preserving
+one local transaction inside the modular monolith.
 
 ---
 

@@ -13,6 +13,8 @@ class OrganizationFlywayMigrationTest {
 
 	private static final Path MIGRATION = Path.of(
 			"src/main/resources/db/migration/V4__align_organization_aggregate_schema.sql");
+	private static final Path HARDENING_MIGRATION = Path.of(
+			"src/main/resources/db/migration/V5__harden_organization_aggregate_constraints.sql");
 	private static final Path IDENTITY_MIGRATION = Path.of(
 			"src/main/resources/db/migration/V1__create_identity_access_schema.sql");
 
@@ -20,6 +22,12 @@ class OrganizationFlywayMigrationTest {
 	void migrationUsesFlywayVersionFourNamingConvention() {
 		assertThat(MIGRATION.getFileName().toString())
 				.matches("V4__[a-z0-9_]+\\.sql");
+	}
+
+	@Test
+	void hardeningMigrationUsesFlywayVersionFiveNamingConvention() {
+		assertThat(HARDENING_MIGRATION.getFileName().toString())
+				.matches("V5__[a-z0-9_]+\\.sql");
 	}
 
 	@Test
@@ -129,6 +137,25 @@ class OrganizationFlywayMigrationTest {
 		assertThat(sql).doesNotContain("TRUNCATE TABLE ORGANIZATIONS");
 		assertThat(sql).doesNotContain("DELETE FROM ORGANIZATIONS");
 		assertThat(sql).doesNotContain(" CASCADE");
+	}
+
+	@Test
+	void hardeningMigrationCompletesPartiallyAppliedOrganizationSchema() throws IOException {
+		String sql = normalizedSql(HARDENING_MIGRATION);
+
+		assertThat(sql).contains("ALTER COLUMN created_at TYPE TIMESTAMPTZ");
+		assertThat(sql).contains("ALTER COLUMN updated_at TYPE TIMESTAMPTZ");
+		assertThat(sql).contains("UPDATE organizations");
+		assertThat(sql).contains("ALTER COLUMN display_name SET NOT NULL");
+		assertThat(sql).contains("chk_organizations_status");
+		assertThat(sql).contains("chk_organizations_country_code");
+		assertThat(sql).contains("chk_organizations_currency_code");
+		assertThat(sql).contains("chk_organizations_contact_email");
+		assertThat(sql).contains("chk_organizations_date_format");
+		assertThat(sql).contains("chk_organizations_time_format");
+		assertThat(sql).contains("chk_organizations_week_start");
+		assertThat(sql).contains("chk_organizations_audit_chronology");
+		assertThat(sql).contains("chk_organizations_version");
 	}
 
 	private static String normalizedMigrationSql() throws IOException {

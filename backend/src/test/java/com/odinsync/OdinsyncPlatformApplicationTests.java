@@ -11,12 +11,13 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 import com.odinsync.identity.infrastructure.security.OdinSyncJwtAuthenticationConverter;
-import com.odinsync.identity.application.port.out.OrganizationRepositoryPort;
 import com.odinsync.identity.application.port.out.PasswordEncoderPort;
 import com.odinsync.identity.application.port.out.RoleRepositoryPort;
 import com.odinsync.identity.application.port.out.TenantRepositoryPort;
 import com.odinsync.identity.application.port.out.UserRepositoryPort;
 import com.odinsync.identity.application.port.out.UserRoleAssignmentPort;
+import com.odinsync.organization.application.port.in.ProvisionOrganizationUseCase;
+import com.odinsync.organization.application.result.ProvisionedOrganizationResult;
 
 @SpringBootTest(
 		classes = OdinsyncPlatformApplicationTests.TestApplication.class,
@@ -49,8 +50,10 @@ class OdinsyncPlatformApplicationTests {
 
 		@Bean
 		@Primary
-		OrganizationRepositoryPort organizationRepositoryPort() {
-			return organization -> organization;
+		ProvisionOrganizationUseCase provisionOrganizationUseCase() {
+			return command -> new ProvisionedOrganizationResult(
+					java.util.UUID.randomUUID(),
+					command.tenantId());
 		}
 
 		@Bean

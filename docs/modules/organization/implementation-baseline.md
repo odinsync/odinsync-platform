@@ -53,20 +53,37 @@ Post-documentation test result:
 
 ## Existing Organization Implementation
 
-Organization code currently exists only in package-boundary placeholders under `backend/src/main/java/com/odinsync/organization/*/package-info.java`.
+ORG-08 transfers Organization persistence ownership from Identity to the
+Organization module.
 
-The implemented organization registration behavior is currently owned by the Identity vertical slice:
+The registration API remains in Identity:
 
+- API: `POST /api/v1/auth/register` in `backend/src/main/java/com/odinsync/identity/presentation/controller/RegisterOrganizationController.java`.
 - Use case: `backend/src/main/java/com/odinsync/identity/application/usecase/RegisterOrganizationUseCase.java`.
 - Input port: `backend/src/main/java/com/odinsync/identity/application/port/in/RegisterOrganizationPort.java`.
-- Output port: `backend/src/main/java/com/odinsync/identity/application/port/out/OrganizationRepositoryPort.java`.
-- Identity domain record: `backend/src/main/java/com/odinsync/identity/domain/model/Organization.java`.
-- JPA entity: `backend/src/main/java/com/odinsync/identity/infrastructure/persistence/entity/OrganizationJpaEntity.java`.
-- Persistence adapter: `backend/src/main/java/com/odinsync/identity/infrastructure/persistence/adapter/OrganizationPersistenceAdapter.java`.
-- Spring Data repository: `backend/src/main/java/com/odinsync/identity/infrastructure/persistence/repository/OrganizationJpaRepository.java`.
-- API: `POST /api/v1/auth/register` in `backend/src/main/java/com/odinsync/identity/presentation/controller/RegisterOrganizationController.java`.
 
-Registration creates tenant, organization, owner user, OWNER role, and user-role assignment inside one `@Transactional` Identity use case. Future Organization phases must preserve this bootstrap flow until ownership is deliberately migrated.
+Identity registration now creates the tenant, owner user, OWNER role, and
+user-role assignment, then calls the Organization application input port to
+provision the Organization aggregate.
+
+Organization owns:
+
+- Provisioning input port: `backend/src/main/java/com/odinsync/organization/application/port/in/ProvisionOrganizationUseCase.java`.
+- Provisioning service: `backend/src/main/java/com/odinsync/organization/application/service/ProvisionOrganizationService.java`.
+- Aggregate model: `backend/src/main/java/com/odinsync/organization/domain/model/Organization.java`.
+- JPA entity: `backend/src/main/java/com/odinsync/organization/infrastructure/persistence/entity/OrganizationJpaEntity.java`.
+- Persistence mapper: `backend/src/main/java/com/odinsync/organization/infrastructure/persistence/mapper/OrganizationPersistenceMapper.java`.
+- Repository adapter: `backend/src/main/java/com/odinsync/organization/infrastructure/persistence/repository/OrganizationRepositoryAdapter.java`.
+- Spring Data repository: `backend/src/main/java/com/odinsync/organization/infrastructure/persistence/repository/SpringDataOrganizationRepository.java`.
+
+The transitional Identity `OrganizationRepositoryPort`, Identity Organization
+domain record, Identity Organization JPA entity, Identity Organization mapper,
+Identity Organization persistence adapter, and Identity Organization Spring Data
+repository have been removed.
+
+Registration still runs inside one local `@Transactional` use case in the
+modular monolith. The transaction now spans Identity persistence and the
+Organization provisioning call.
 
 ## Reusable Shared Abstractions
 
@@ -243,7 +260,9 @@ Organization should reuse `GlobalExceptionHandler` and add Organization-specific
 - Table names are plural snake_case.
 - Constraint/index names use prefixes such as `fk_`, `uk_`, and `idx_`.
 
-Organization persistence should follow the port/adapter/repository/mapper split already used by Identity. For mutable Organization aggregate persistence, add optimistic locking only when the schema and use case require concurrent update protection.
+Organization persistence follows the port/adapter/repository/mapper split used
+elsewhere in the backend. The Organization module owns the aggregate JPA entity,
+mapper, repository adapter, and optimistic-lock version column.
 
 ## Registration Integration
 
@@ -251,22 +270,28 @@ Current registration transaction in `RegisterOrganizationUseCase`:
 
 1. Normalize and check email uniqueness through `UserRepositoryPort`.
 2. Create tenant with status `ACTIVE` and plan `FREE`.
-3. Create organization linked to tenant.
-4. Hash owner password.
-5. Create owner user linked to tenant.
-6. Create OWNER role linked to tenant.
-7. Assign OWNER role to owner user.
-8. Return tenant ID, organization ID, user ID, and message.
+3. Hash owner password.
+4. Create owner user linked to tenant.
+5. Create OWNER role linked to tenant.
+6. Assign OWNER role to owner user.
+7. Call `ProvisionOrganizationUseCase` with tenant ID, owner user ID, organization name, legal name, and contact email.
+8. Organization provisioning creates and persists the Organization aggregate.
+9. Return tenant ID, organization ID, user ID, and message.
+
+Organization provisioning supplies aggregate-required defaults from validated
+application configuration until registration collects the full Organization
+profile.
 
 Future Organization phases must preserve:
 
 - Atomic tenant/organization/user/role bootstrap.
 - Client must not supply `tenant_id`.
-- Existing `organizations` rows created by Identity registration.
+- Existing `organizations` rows created through registration.
 - Existing `uk_organizations_tenant_id` one-organization-per-tenant assumption.
 - Existing API response containing `organizationId`.
 
-Any move from Identity-owned `OrganizationJpaEntity` to Organization-owned persistence will need a deliberate migration/adapter plan rather than a silent duplicate model.
+Identity must not reintroduce Organization JPA entities, Spring Data
+repositories, persistence mappers, or direct writes to the `organizations` table.
 
 ## Testing Strategy
 
@@ -291,14 +316,14 @@ Organization phases should start with focused unit tests using JUnit, Mockito, a
 
 | Risk | Impact | Affected phase | Recommended resolution |
 | --- | --- | --- | --- |
-| `organizations` table and model are currently Identity-owned | Organization module could duplicate or conflict with Identity persistence | ORG-06 to ORG-09 | Decide ownership and introduce a transition adapter/backfill plan before Organization persistence writes |
+| `organizations` table ownership has moved to Organization | Identity registration could accidentally reintroduce duplicate persistence | ORG-08 onward | Keep Identity dependent on `ProvisionOrganizationUseCase` and enforce with architecture tests |
 | PostgreSQL docs and implementation must remain aligned | Wrong SQL types or driver assumptions would break Flyway/JPA validation | ORG-06 | Use PostgreSQL native `UUID` and existing Flyway naming |
 | Raw UUID versus value-object mismatch | Introducing ID value objects too early would diverge from Identity conventions | ORG-01 | Use raw `UUID` now; defer value-object IDs to a platform-wide decision |
 | Roles-only JWT while docs expect permissions | Permission-based Organization security cannot work from current tokens | ORG-10 to ORG-13 | Use role authorities temporarily or extend token/converter in a dedicated security task |
 | Missing `CurrentActorProvider` | Use cases may depend directly on Spring `Jwt` if no adapter is introduced | ORG-03 | Add application port and Spring Security adapter before Organization use cases |
 | Missing Testcontainers | Persistence tests against PostgreSQL cannot be added cleanly yet | ORG-07 to ORG-09 | Add Testcontainers only in an approved testing-infrastructure task |
 | Missing domain-event abstraction | Aggregate events in docs have no implementation target | ORG-02, ORG-16 | Record events locally first; introduce publisher/outbox later by explicit task |
-| Registration transaction coupling | Moving Organization ownership can break tenant onboarding | ORG-06 to ORG-09 | Preserve Identity registration flow until migration and ownership are explicit |
+| Registration transaction coupling | Organization provisioning failure must roll back tenant onboarding | ORG-08 onward | Keep registration and provisioning in one local transaction until a future outbox/service split is approved |
 | Existing schema may be thinner than approved Organization design | Future fields/settings may require additive migrations/backfill | ORG-06 | Create additive `V4` migration and avoid editing V1 |
 | Cross-module FK coupling to tenants | Later microservice extraction will need boundary decisions | ORG-06 onward | Keep modular monolith references now; document extraction path before service split |
 
@@ -313,7 +338,7 @@ Organization phases should start with focused unit tests using JUnit, Mockito, a
 
 ## Deferred Decisions
 
-- Whether Organization should own the existing `organizations` table or consume it through an Identity-owned adapter during transition.
+- Whether Organization ownership of the existing `organizations` table should later be extracted behind an asynchronous provisioning workflow.
 - Whether to introduce shared ID value objects.
 - Whether to include permissions in JWT access tokens.
 - Whether to add `CurrentActorProvider`.
@@ -327,7 +352,7 @@ Organization phases should start with focused unit tests using JUnit, Mockito, a
 - `docs/modules/organization/organization.md` describes future Organization-owned domain, event, actor, and permission patterns that are not implemented yet.
 - `docs/modules/organization/implementation_roadmap.md` refers to future `CurrentActorProvider`, `DomainEventPublisher`, and outbox concerns; source code does not currently contain these abstractions.
 - Current implementation uses role-based JWT authorities, while Organization docs target permission-based authorization.
-- Current Organization persistence exists in Identity, not in the Organization bounded context.
+- Organization persistence now exists in the Organization bounded context; Identity registration depends on the Organization application input port.
 
 ## Decision Table
 
@@ -338,7 +363,7 @@ Organization phases should start with focused unit tests using JUnit, Mockito, a
 | Ports | `application.port.in`, `application.port.out` | Reuse | `backend/src/main/java/com/odinsync/identity/application/port/in`, `backend/src/main/java/com/odinsync/identity/application/port/out` |
 | Tenant ID | Raw `UUID` | Reuse raw `UUID` | `backend/src/main/java/com/odinsync/identity/domain/model/Tenant.java` |
 | User ID | Raw `UUID` | Reuse raw `UUID` | `backend/src/main/java/com/odinsync/identity/domain/model/User.java` |
-| Organization ID | Raw `UUID` | Reuse raw `UUID` | `backend/src/main/java/com/odinsync/identity/domain/model/Organization.java` |
+| Organization ID | Raw `UUID` | Reuse raw `UUID` | `backend/src/main/java/com/odinsync/organization/domain/model/Organization.java` |
 | UUID database type | PostgreSQL `UUID` | Reuse | `backend/src/main/resources/db/migration/V1__create_identity_access_schema.sql` |
 | Current actor | Direct `@AuthenticationPrincipal Jwt` | Introduce provider in ORG-03 | `backend/src/main/java/com/odinsync/identity/presentation/rest/CurrentUserController.java` |
 | Permissions | Roles in JWT, `ROLE_*` authorities | Use role authorities temporarily | `backend/src/main/java/com/odinsync/identity/infrastructure/security/OdinSyncJwtAuthenticationConverter.java` |
@@ -350,7 +375,7 @@ Organization phases should start with focused unit tests using JUnit, Mockito, a
 
 ## Recommended Next Task
 
-ORG-01 Domain Primitives and Value Objects
+Continue with the next Organization delivery phase after ORG-08.
 
 Phase guidance:
 
@@ -358,5 +383,5 @@ Phase guidance:
 - ORG-02: aggregate may record local domain events internally, but source has no publisher abstraction to reuse.
 - ORG-03: introduce actor, authorization, time, repository, and event ports only if required by use cases; current actor provider is missing.
 - ORG-06: likely migration candidate is V4; use additive PostgreSQL migration and plan for existing `organizations` rows.
-- ORG-07 to ORG-09: follow Identity persistence with domain/JPA separation, explicit mapper, Spring Data repository, and adapter implementing an output port.
+- ORG-09 onward: keep Identity-to-Organization collaboration through application ports and avoid direct cross-module infrastructure access.
 - ORG-10 to ORG-13: follow `/api/v1/...`, record DTOs, Bean Validation, MockMvc tests, `ApiErrorResponse`, and temporary role-based security until permissions are implemented in JWT.

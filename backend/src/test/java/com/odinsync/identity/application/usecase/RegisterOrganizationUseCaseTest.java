@@ -8,17 +8,18 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.odinsync.identity.application.model.RegisterOrganizationResult;
+import com.odinsync.organization.application.command.ProvisionOrganizationCommand;
+import com.odinsync.organization.application.port.in.ProvisionOrganizationUseCase;
+import com.odinsync.organization.application.result.ProvisionedOrganizationResult;
 import org.junit.jupiter.api.Test;
 
 import com.odinsync.identity.application.command.RegisterOrganizationCommand;
-import com.odinsync.identity.application.port.out.OrganizationRepositoryPort;
 import com.odinsync.identity.application.port.out.PasswordEncoderPort;
 import com.odinsync.identity.application.port.out.RoleRepositoryPort;
 import com.odinsync.identity.application.port.out.TenantRepositoryPort;
 import com.odinsync.identity.application.port.out.UserRepositoryPort;
 import com.odinsync.identity.application.port.out.UserRoleAssignmentPort;
 import com.odinsync.identity.domain.exception.EmailAlreadyExistsException;
-import com.odinsync.identity.domain.model.Organization;
 import com.odinsync.identity.domain.model.Role;
 import com.odinsync.identity.domain.model.RoleName;
 import com.odinsync.identity.domain.model.Tenant;
@@ -32,7 +33,7 @@ class RegisterOrganizationUseCaseTest {
 	@Test
 	void registersOrganizationAndOwner() {
 		InMemoryTenantRepository tenants = new InMemoryTenantRepository();
-		InMemoryOrganizationRepository organizations = new InMemoryOrganizationRepository();
+		InMemoryOrganizationProvisioning organizations = new InMemoryOrganizationProvisioning();
 		InMemoryUserRepository users = new InMemoryUserRepository();
 		InMemoryRoleRepository roles = new InMemoryRoleRepository();
 		InMemoryUserRoleAssignment userRoleAssignments = new InMemoryUserRoleAssignment();
@@ -61,15 +62,19 @@ class RegisterOrganizationUseCaseTest {
 		assertThat(tenant.status()).isEqualTo(TenantStatus.ACTIVE);
 		assertThat(tenant.plan()).isEqualTo(SubscriptionPlan.FREE);
 
-		Organization organization = organizations.savedOrganization;
-		assertThat(organization.tenantId()).isEqualTo(tenant.id());
-		assertThat(organization.name()).isEqualTo("Odin Retail");
-
 		User owner = users.savedUser;
 		assertThat(owner.tenantId()).isEqualTo(tenant.id());
 		assertThat(owner.email()).isEqualTo("owner@example.com");
 		assertThat(owner.passwordHash()).isEqualTo("hashed-strong-password");
 		assertThat(owner.status()).isEqualTo(UserStatus.ACTIVE);
+
+		ProvisionOrganizationCommand provisioning = organizations.savedCommand;
+		assertThat(provisioning.tenantId()).isEqualTo(tenant.id());
+		assertThat(provisioning.ownerUserId()).isEqualTo(owner.id());
+		assertThat(provisioning.organizationName()).isEqualTo("Odin Retail");
+		assertThat(provisioning.legalName()).isEqualTo("Odin Retail Private Limited");
+		assertThat(provisioning.contactEmail()).isEqualTo("owner@example.com");
+		assertThat(result.organizationId()).isEqualTo(InMemoryOrganizationProvisioning.ORGANIZATION_ID);
 
 		Role ownerRole = roles.savedRole;
 		assertThat(ownerRole.tenantId()).isEqualTo(tenant.id());
@@ -83,9 +88,9 @@ class RegisterOrganizationUseCaseTest {
 		InMemoryUserRepository users = new InMemoryUserRepository();
 		users.existingEmails.put("owner@example.com", true);
 
-		RegisterOrganizationUseCase service = new RegisterOrganizationUseCase(
-				new InMemoryTenantRepository(),
-				new InMemoryOrganizationRepository(),
+			RegisterOrganizationUseCase service = new RegisterOrganizationUseCase(
+					new InMemoryTenantRepository(),
+				new InMemoryOrganizationProvisioning(),
 				users,
 				new InMemoryRoleRepository(),
 				new InMemoryUserRoleAssignment(),
@@ -103,6 +108,37 @@ class RegisterOrganizationUseCaseTest {
 				.hasMessageContaining("owner@example.com");
 	}
 
+	@Test
+	void propagatesProvisioningFailureAfterIdentityBootstrapWork() {
+		InMemoryTenantRepository tenants = new InMemoryTenantRepository();
+		FailingOrganizationProvisioning organizations = new FailingOrganizationProvisioning();
+		InMemoryUserRepository users = new InMemoryUserRepository();
+		InMemoryRoleRepository roles = new InMemoryRoleRepository();
+		InMemoryUserRoleAssignment userRoleAssignments = new InMemoryUserRoleAssignment();
+		RuntimeException failure = organizations.failure;
+
+		RegisterOrganizationUseCase service = new RegisterOrganizationUseCase(
+				tenants,
+				organizations,
+				users,
+				roles,
+				userRoleAssignments,
+				new NoOpPasswordEncoderPort());
+
+		assertThatThrownBy(() -> service.register(new RegisterOrganizationCommand(
+				"Odin Retail",
+				"Odin Retail Private Limited",
+				"Ada Lovelace",
+				"owner@example.com",
+				"strong-password")))
+				.isSameAs(failure);
+
+		assertThat(tenants.savedTenant).isNotNull();
+		assertThat(users.savedUser).isNotNull();
+		assertThat(roles.savedRole).isNotNull();
+		assertThat(userRoleAssignments.assignedRoleId).isNotNull();
+	}
+
 	private static final class InMemoryTenantRepository implements TenantRepositoryPort {
 		private Tenant savedTenant;
 
@@ -113,13 +149,23 @@ class RegisterOrganizationUseCaseTest {
 		}
 	}
 
-	private static final class InMemoryOrganizationRepository implements OrganizationRepositoryPort {
-		private Organization savedOrganization;
+	private static final class InMemoryOrganizationProvisioning implements ProvisionOrganizationUseCase {
+		private static final UUID ORGANIZATION_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+		private ProvisionOrganizationCommand savedCommand;
 
 		@Override
-		public Organization save(Organization organization) {
-			savedOrganization = organization;
-			return organization;
+		public ProvisionedOrganizationResult provision(ProvisionOrganizationCommand command) {
+			savedCommand = command;
+			return new ProvisionedOrganizationResult(ORGANIZATION_ID, command.tenantId());
+		}
+	}
+
+	private static final class FailingOrganizationProvisioning implements ProvisionOrganizationUseCase {
+		private final RuntimeException failure = new RuntimeException("organization provisioning failed");
+
+		@Override
+		public ProvisionedOrganizationResult provision(ProvisionOrganizationCommand command) {
+			throw failure;
 		}
 	}
 

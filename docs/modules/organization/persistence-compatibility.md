@@ -7,9 +7,25 @@
 - Table: `organizations`
 - Strategy: extend the existing Identity-created table instead of creating a second Organization table.
 
+Follow-up hardening migration:
+
+- Version: `V5`
+- File: `backend/src/main/resources/db/migration/V5__harden_organization_aggregate_constraints.sql`
+- Purpose: complete the Organization aggregate schema for development databases
+  that applied an earlier V4 during the ownership-transfer work.
+- Strategy: idempotently enforce timestamp type conversion, aggregate
+  nullability, and check constraints without dropping legacy columns.
+
 ## Current Ownership Status
 
-The `organizations` table is still used by Identity registration. The Organization module now has its own aggregate persistence model that maps to the same table. ORG-07 does not transfer registration ownership and does not add dual writes.
+ORG-08 transfers active Organization persistence ownership to the Organization
+module. The `organizations` table is mapped by the Organization aggregate JPA
+entity, and registration-time Organization creation goes through the
+Organization application input port.
+
+Identity registration still initiates tenant onboarding, but it no longer owns
+an Organization JPA entity, Organization mapper, Organization repository, or
+direct writes to the `organizations` table.
 
 ## Entity-to-Column Matrix
 
@@ -52,27 +68,26 @@ The `organizations` table is still used by Identity registration. The Organizati
 
 ## Identity Compatibility
 
-Identity currently maps these columns: `id`, `tenant_id`, `name`, `legal_name`, `email`, `created_at`, and `updated_at`.
+Before ORG-08, Identity mapped these legacy columns: `id`, `tenant_id`, `name`,
+`legal_name`, `email`, `created_at`, and `updated_at`.
 
 The Organization module maps the richer aggregate columns introduced in V4. Legacy columns `name`, `email`, `gst_number`, and `address` are retained. V4 backfills deterministic values from those columns where possible.
 
 Known compatibility risks:
 
-- Identity registration does not supply Organization aggregate fields such as address, settings, lifecycle status, or audit actor IDs.
-- V4 uses compatibility defaults for required aggregate columns so existing registration writes do not fail before ORG-08.
-- These defaults are migration compatibility values, not final domain ownership semantics.
-- ORG-08 should move registration-time Organization creation behind the Organization application port and remove the need for compatibility defaults.
+- Existing rows may have been created by the older Identity registration path.
+- V4 uses compatibility defaults and backfills required aggregate columns for those rows.
+- New registration writes should use the Organization provisioning use case, which supplies validated aggregate defaults from application configuration.
+- Compatibility defaults should remain migration safety nets, not the primary source of domain values.
 
 ## Bean Registration
 
-Both Identity and Organization contain a class named `OrganizationPersistenceMapper`. To avoid default Spring bean-name collision, their component names are explicit:
-
-- `identityOrganizationPersistenceMapper`
-- `organizationAggregatePersistenceMapper`
+Only the Organization module should contain an active `OrganizationPersistenceMapper`
+bean after ORG-08. Identity must not reintroduce an Organization persistence
+mapper or another JPA entity mapped to `organizations`.
 
 ## Deferred Work
 
-- Transfer registration-time Organization creation from Identity persistence to the Organization application port.
-- Remove duplicate Identity Organization persistence after ownership transfer.
 - Add PostgreSQL-backed Flyway/JPA validation with Testcontainers when the persistence testing phase is approved.
-- Replace compatibility defaults with application-supplied aggregate values once ORG-08 is complete.
+- Decide when legacy compatibility columns such as `name`, `email`, `gst_number`, and `address` can be removed or formally deprecated.
+- Decide whether future microservice extraction keeps synchronous provisioning or moves to an asynchronous onboarding workflow.

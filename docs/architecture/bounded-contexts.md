@@ -220,6 +220,10 @@ Identity owns:
 - Account status
 - Security policies
 
+Identity does not own Organization profile persistence. During tenant onboarding,
+Identity orchestrates the registration workflow and calls the Organization
+application contract to provision the initial Organization.
+
 ---
 
 # Current Features
@@ -275,6 +279,26 @@ Identity does **not** own:
 - Employee information
 
 Those belong to their respective bounded contexts.
+
+## Registration Collaboration
+
+Tenant onboarding is a modular-monolith collaboration between Identity and
+Organization.
+
+```text
+Identity Register Organization Use Case
+    creates Tenant, Owner User, OWNER Role
+    calls Organization Provisioning Use Case
+        creates Organization aggregate
+        saves through Organization repository adapter
+```
+
+Identity depends on the Organization application input port only. It must not
+depend on Organization JPA entities, Spring Data repositories, persistence
+mappers, or infrastructure adapters.
+
+The Organization module is the source of truth for the `organizations` table and
+is the only module that should map and persist the Organization aggregate.
 
 ---
 

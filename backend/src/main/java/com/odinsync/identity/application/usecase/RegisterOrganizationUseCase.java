@@ -2,18 +2,19 @@ package com.odinsync.identity.application.usecase;
 
 import com.odinsync.identity.application.model.RegisterOrganizationResult;
 import com.odinsync.identity.domain.exception.EmailAlreadyExistsException;
+import com.odinsync.organization.application.command.ProvisionOrganizationCommand;
+import com.odinsync.organization.application.port.in.ProvisionOrganizationUseCase;
+import com.odinsync.organization.application.result.ProvisionedOrganizationResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.odinsync.identity.application.command.RegisterOrganizationCommand;
 import com.odinsync.identity.application.port.in.RegisterOrganizationPort;
-import com.odinsync.identity.application.port.out.OrganizationRepositoryPort;
 import com.odinsync.identity.application.port.out.PasswordEncoderPort;
 import com.odinsync.identity.application.port.out.RoleRepositoryPort;
 import com.odinsync.identity.application.port.out.TenantRepositoryPort;
 import com.odinsync.identity.application.port.out.UserRepositoryPort;
 import com.odinsync.identity.application.port.out.UserRoleAssignmentPort;
-import com.odinsync.identity.domain.model.Organization;
 import com.odinsync.identity.domain.model.Role;
 import com.odinsync.identity.domain.model.Tenant;
 import com.odinsync.identity.domain.model.User;
@@ -21,7 +22,7 @@ import com.odinsync.identity.domain.model.User;
 @Service
 class RegisterOrganizationUseCase implements RegisterOrganizationPort {
 	private final TenantRepositoryPort tenantRepository;
-	private final OrganizationRepositoryPort organizationRepository;
+	private final ProvisionOrganizationUseCase provisionOrganizationUseCase;
 	private final UserRepositoryPort userRepository;
 	private final RoleRepositoryPort roleRepository;
 	private final UserRoleAssignmentPort userRoleAssignment;
@@ -29,13 +30,13 @@ class RegisterOrganizationUseCase implements RegisterOrganizationPort {
 
 	RegisterOrganizationUseCase(
 			TenantRepositoryPort tenantRepository,
-			OrganizationRepositoryPort organizationRepository,
+			ProvisionOrganizationUseCase provisionOrganizationUseCase,
 			UserRepositoryPort userRepository,
 			RoleRepositoryPort roleRepository,
 			UserRoleAssignmentPort userRoleAssignment,
 			PasswordEncoderPort passwordEncoder) {
 		this.tenantRepository = tenantRepository;
-		this.organizationRepository = organizationRepository;
+		this.provisionOrganizationUseCase = provisionOrganizationUseCase;
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
 		this.userRoleAssignment = userRoleAssignment;
@@ -53,14 +54,6 @@ class RegisterOrganizationUseCase implements RegisterOrganizationPort {
 		Tenant tenant = tenantRepository.save(
 				Tenant.createFreeTenant(command.organizationName())
 		);
-		Organization organization = organizationRepository.save(
-				Organization.create(
-						tenant.id(),
-						command.organizationName(),
-						command.legalName(),
-						normalizedEmail
-				)
-		);
 
 		String passwordHash = passwordEncoder.encode(command.password());
 		User ownerUser = userRepository.save(
@@ -76,10 +69,19 @@ class RegisterOrganizationUseCase implements RegisterOrganizationPort {
 		userRoleAssignment.assignRole(
 				ownerUser.id(), ownerRole.id()
 		);
+		ProvisionedOrganizationResult organization = provisionOrganizationUseCase.provision(
+				new ProvisionOrganizationCommand(
+						tenant.id(),
+						ownerUser.id(),
+						command.organizationName(),
+						command.legalName(),
+						normalizedEmail
+				)
+		);
 
 		return new RegisterOrganizationResult(
 				tenant.id(),
-				organization.id(),
+				organization.organizationId(),
 				ownerUser.id(),
 				"Organization registered successfully"
 

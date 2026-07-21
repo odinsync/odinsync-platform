@@ -15,6 +15,21 @@ management:
         include: health,info
 
 odinsync:
+  organization:
+    defaults:
+      currency: INR
+      locale: Not provided
+      time-zone: Not provided
+      date-format: Not provided
+      time-format: Not provided
+      week-start: Not provided
+      phone: Not provided
+      address:
+        line1: ""
+        city: ""
+        state-or-region: ""
+        postal-code: ""
+        country-code: ""
   security:
     jwt:
       issuer: odinsync-platform
