@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import com.odinsync.identity.domain.model.Organization;
 import com.odinsync.identity.infrastructure.persistence.entity.OrganizationJpaEntity;
 
-@Component
+@Component("identityOrganizationPersistenceMapper")
 public class OrganizationPersistenceMapper {
 
 	public OrganizationJpaEntity toEntity(Organization organization) {

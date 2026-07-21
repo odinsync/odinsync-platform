@@ -22,7 +22,7 @@ import com.odinsync.organization.infrastructure.persistence.entity.OrganizationJ
 import com.odinsync.organization.infrastructure.persistence.entity.OrganizationSettingsEmbeddable;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("organizationAggregatePersistenceMapper")
 public class OrganizationPersistenceMapper {
 
 	public OrganizationJpaEntity toNewEntity(Organization organization) {
