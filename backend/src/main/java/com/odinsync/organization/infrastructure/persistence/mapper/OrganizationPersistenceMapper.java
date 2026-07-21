@@ -20,8 +20,10 @@ import com.odinsync.organization.infrastructure.persistence.entity.OrganizationA
 import com.odinsync.organization.infrastructure.persistence.entity.OrganizationContactEmbeddable;
 import com.odinsync.organization.infrastructure.persistence.entity.OrganizationJpaEntity;
 import com.odinsync.organization.infrastructure.persistence.entity.OrganizationSettingsEmbeddable;
+import org.springframework.stereotype.Component;
 
-public final class OrganizationPersistenceMapper {
+@Component
+public class OrganizationPersistenceMapper {
 
 	public OrganizationJpaEntity toNewEntity(Organization organization) {
 		Objects.requireNonNull(organization, "organization must not be null");
