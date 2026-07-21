@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.odinsync.organization.application.command.UpdateOrganizationProfileCommand;
+import com.odinsync.organization.application.command.UpdateOrganizationSettingsCommand;
 import com.odinsync.organization.application.model.AuthenticatedActor;
 import com.odinsync.organization.domain.model.DateFormat;
 import com.odinsync.organization.domain.model.Organization;
@@ -92,7 +93,11 @@ public final class ApplicationContractTestFixtures {
 				ACTOR_ID,
 				TENANT_ID,
 				Set.of("OWNER"),
-				Set.of("organization:read", "organization:update"));
+				Set.of(
+						"organization:read",
+						"organization:update",
+						"organization:settings:read",
+						"organization:settings:update"));
 	}
 
 	public static Organization organization() {
@@ -128,5 +133,19 @@ public final class ApplicationContractTestFixtures {
 				changedTaxRegistrationNumber(),
 				changedAddress(),
 				changedContact());
+	}
+
+	public static OrganizationSettings changedSettings() {
+		return new OrganizationSettings(
+				new CurrencyCode("USD"),
+				new OrganizationTimeZone("America/New_York"),
+				new OrganizationLocale("en-US"),
+				DateFormat.MM_DD_YYYY,
+				TimeFormat.TWELVE_HOUR,
+				WeekStart.SUNDAY);
+	}
+
+	public static UpdateOrganizationSettingsCommand updateSettingsCommand() {
+		return new UpdateOrganizationSettingsCommand(changedSettings());
 	}
 }

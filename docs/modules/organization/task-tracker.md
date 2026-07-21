@@ -9,7 +9,8 @@
 | ORG-02 Organization Aggregate and Domain Events | Complete | Organization aggregate and local domain event recording are implemented without publisher/outbox infrastructure. |
 | ORG-03 Application Ports and Contracts | Complete | Application contracts for current actor, authorization, repository, time, and event publication are defined without adapters. |
 | ORG-04 Profile Application Use Cases | Complete | Get/update Organization profile use cases are implemented using ORG-03 contracts. |
-| ORG-05 Settings Application Use Cases | Next | Implement get/update Organization settings use cases using ORG-03 contracts. |
+| ORG-05 Settings Application Use Cases | Complete | Get/update Organization settings use cases are implemented using ORG-03 contracts. |
+| ORG-06 Persistence Schema | Next | Introduce Organization Flyway schema without JPA mappings or adapters. |
 
 ## Deferred Beyond ORG-03
 
